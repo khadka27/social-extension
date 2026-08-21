@@ -1,7 +1,8 @@
 /**
  * SocialShare - Popup UI Controller
  * Orchestrates live tab metadata extraction, external URL parsing,
- * visual note card generation, auto-posting, and 1-click social sharing.
+ * visual note card generation, sliding carousel video generation,
+ * auto-posting, and 1-click social sharing.
  */
 
 (function () {
@@ -25,7 +26,13 @@
     cardHook: 'No hints. No clue. Just pure logic...!',
     cardText: '',
     cardFooter: 'No winner yet • What\'s your answer?',
-    activeTabMode: 'standard'
+    activeTabMode: 'standard',
+
+    // Carousel Video State
+    videoRatio: '9:16',
+    videoSpeed: 2.5,
+    generatedVideoBlob: null,
+    generatedVideoUrl: null
   };
 
   // DOM Elements
@@ -45,8 +52,10 @@
     // Tabs
     tabStandardBtn: document.getElementById('tab-standard-btn'),
     tabVisualCardBtn: document.getElementById('tab-visual-card-btn'),
+    tabCarouselVideoBtn: document.getElementById('tab-carousel-video-btn'),
     standardPreviewPanel: document.getElementById('standard-preview-panel'),
     visualCardPanel: document.getElementById('visual-card-panel'),
+    carouselVideoPanel: document.getElementById('carousel-video-panel'),
 
     // Preview Elements
     siteBadge: document.getElementById('site-badge'),
@@ -85,6 +94,22 @@
     cardFooterInput: document.getElementById('card-footer-input'),
     downloadNoteCardBtn: document.getElementById('download-note-card-btn'),
     copyNoteCardBtn: document.getElementById('copy-note-card-btn'),
+
+    // Carousel Video Elements
+    carouselVideoPlayer: document.getElementById('carousel-video-player'),
+    carouselVideoPlaceholder: document.getElementById('carousel-video-placeholder'),
+    videoProgressOverlay: document.getElementById('video-progress-overlay'),
+    videoProgressFill: document.getElementById('video-progress-fill'),
+    videoProgressText: document.getElementById('video-progress-text'),
+    videoImageCountBadge: document.getElementById('video-image-count-badge'),
+    videoRatioChips: document.querySelectorAll('.video-ratio-chip'),
+    videoSpeedChips: document.querySelectorAll('.video-speed-chip'),
+    generateVideoBtn: document.getElementById('generate-video-btn'),
+    generateVideoBtnText: document.getElementById('generate-video-btn-text'),
+    downloadVideoBtn: document.getElementById('download-video-btn'),
+    videoPostTargets: document.getElementById('video-post-targets'),
+    postVideoTiktokBtn: document.getElementById('post-video-tiktok-btn'),
+    postVideoShortsBtn: document.getElementById('post-video-shorts-btn'),
 
     // Auto-Post Elements
     autoPostTriggerBtn: document.getElementById('auto-post-trigger-btn'),
@@ -297,6 +322,11 @@
     }
     state.cardText = elements.cardTextInput.value;
 
+    // Update Video badge
+    if (elements.videoImageCountBadge) {
+      elements.videoImageCountBadge.textContent = `${state.images.length} Images`;
+    }
+
     updateCharCounts();
     updateImagePreview();
     renderGalleryThumbnails();
@@ -329,6 +359,9 @@
       elements.downloadImageBtn.classList.add('hidden');
     }
     elements.imageCount.textContent = state.images.length;
+    if (elements.videoImageCountBadge) {
+      elements.videoImageCountBadge.textContent = `${state.images.length} Images`;
+    }
   }
 
   /**
@@ -426,6 +459,58 @@
   }
 
   /**
+   * Generates a Sliding Carousel Video from extracted images
+   */
+  async function generateCarouselVideo() {
+    if (typeof VideoGenerator === 'undefined') {
+      showToast('Video Generator engine loading...');
+      return;
+    }
+
+    syncInputsToState();
+    elements.videoProgressOverlay.classList.remove('hidden');
+    elements.generateVideoBtn.disabled = true;
+    elements.generateVideoBtnText.textContent = 'Generating Video...';
+
+    try {
+      const result = await VideoGenerator.generateCarouselVideo({
+        title: state.title || 'Article Story',
+        description: state.description,
+        url: state.url,
+        siteName: state.siteName,
+        images: state.images.length > 0 ? state.images : (state.image ? [state.image] : []),
+        aspectRatio: state.videoRatio,
+        secondsPerSlide: state.videoSpeed
+      }, (percent, statusMsg) => {
+        elements.videoProgressFill.style.width = `${percent}%`;
+        elements.videoProgressText.textContent = `${statusMsg} (${percent}%)`;
+      });
+
+      state.generatedVideoBlob = result.blob;
+      state.generatedVideoUrl = result.url;
+
+      // Reveal Video Player
+      elements.carouselVideoPlaceholder.classList.add('hidden');
+      elements.carouselVideoPlayer.src = result.url;
+      elements.carouselVideoPlayer.classList.remove('hidden');
+      elements.carouselVideoPlayer.play().catch(() => {});
+
+      // Reveal download and sharing targets
+      elements.downloadVideoBtn.classList.remove('hidden');
+      elements.videoPostTargets.classList.remove('hidden');
+      elements.videoProgressOverlay.classList.add('hidden');
+
+      showToast('🎬 Carousel video generated successfully!');
+    } catch (err) {
+      elements.videoProgressOverlay.classList.add('hidden');
+      showToast(err.message || 'Could not generate video.');
+    } finally {
+      elements.generateVideoBtn.disabled = false;
+      elements.generateVideoBtnText.textContent = 'Re-Generate Video';
+    }
+  }
+
+  /**
    * Gets the formatted text based on current inputs and selected template
    */
   function getFormattedPost() {
@@ -474,7 +559,6 @@
       if (platformKey === 'email') {
         window.location.href = shareUrl;
       } else if (platformKey === 'tiktok') {
-        // TikTok: Copy optimized caption + tags to clipboard and open TikTok upload
         const caption = platform.getCaption ? platform.getCaption({
           title: titleToUse,
           description: state.description,
@@ -486,7 +570,6 @@
         window.open(shareUrl, '_blank');
         return;
       } else if (platformKey === 'youtube') {
-        // YouTube: Copy community post / description to clipboard and open YouTube Studio
         const caption = platform.getCaption ? platform.getCaption({
           title: titleToUse,
           description: state.description,
@@ -511,11 +594,9 @@
         );
         return;
       } else {
-        // Automatically copy full post text as backup for all platforms
         const fullPost = getFormattedPost();
         copyToClipboard(fullPost, `Opening ${platform.name}... 📋 Text copied!`);
 
-        // Open in a centered popup window
         const width = 600;
         const height = 540;
         const left = (window.screen.width - width) / 2;
@@ -555,7 +636,6 @@
         postTitle = SocialShare.makeUnique(state.title, state.description);
       }
 
-      // Open platform share intent with a short delay between windows
       setTimeout(() => {
         shareToPlatform(plat, postTitle);
       }, i * 450);
@@ -566,22 +646,79 @@
    * Setup Event Listeners
    */
   function setupEventListeners() {
-    // Mode Tabs Switcher (Standard vs Visual Note Card)
+    // Mode Tabs Switcher (Standard vs Visual Note Card vs Carousel Video)
     elements.tabStandardBtn.addEventListener('click', () => {
       elements.tabStandardBtn.classList.add('active');
       elements.tabVisualCardBtn.classList.remove('active');
+      elements.tabCarouselVideoBtn.classList.remove('active');
       elements.standardPreviewPanel.classList.remove('hidden');
       elements.visualCardPanel.classList.add('hidden');
+      elements.carouselVideoPanel.classList.add('hidden');
       state.activeTabMode = 'standard';
     });
 
     elements.tabVisualCardBtn.addEventListener('click', () => {
       elements.tabVisualCardBtn.classList.add('active');
       elements.tabStandardBtn.classList.remove('active');
+      elements.tabCarouselVideoBtn.classList.remove('active');
       elements.visualCardPanel.classList.remove('hidden');
       elements.standardPreviewPanel.classList.add('hidden');
+      elements.carouselVideoPanel.classList.add('hidden');
       state.activeTabMode = 'card';
       renderNoteCard();
+    });
+
+    elements.tabCarouselVideoBtn.addEventListener('click', () => {
+      elements.tabCarouselVideoBtn.classList.add('active');
+      elements.tabStandardBtn.classList.remove('active');
+      elements.tabVisualCardBtn.classList.remove('active');
+      elements.carouselVideoPanel.classList.remove('hidden');
+      elements.standardPreviewPanel.classList.add('hidden');
+      elements.visualCardPanel.classList.add('hidden');
+      state.activeTabMode = 'video';
+    });
+
+    // Carousel Video Generator Controls
+    elements.videoRatioChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        elements.videoRatioChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        state.videoRatio = chip.getAttribute('data-ratio');
+        showToast(`Video format: ${chip.textContent}`);
+      });
+    });
+
+    elements.videoSpeedChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        elements.videoSpeedChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        state.videoSpeed = parseFloat(chip.getAttribute('data-speed'));
+        showToast(`Slide speed: ${chip.textContent}`);
+      });
+    });
+
+    elements.generateVideoBtn.addEventListener('click', generateCarouselVideo);
+
+    elements.downloadVideoBtn.addEventListener('click', () => {
+      if (state.generatedVideoUrl) {
+        const a = document.createElement('a');
+        a.href = state.generatedVideoUrl;
+        a.download = `carousel-${state.siteName || 'article'}-video.webm`;
+        a.click();
+        showToast('Video downloaded! 📥');
+      }
+    });
+
+    elements.postVideoTiktokBtn.addEventListener('click', () => {
+      const caption = getFormattedPost();
+      copyToClipboard(caption, 'TikTok caption copied! Opening TikTok 🎵');
+      window.open('https://www.tiktok.com/upload', '_blank');
+    });
+
+    elements.postVideoShortsBtn.addEventListener('click', () => {
+      const caption = getFormattedPost();
+      copyToClipboard(caption, 'YouTube Shorts description copied! Opening YouTube 🎥');
+      window.open('https://studio.youtube.com/', '_blank');
     });
 
     // Note Card Inputs

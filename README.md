@@ -13,6 +13,11 @@ A high-performance **Manifest V3 Browser Extension** that extracts titles, descr
   - **Right-Click Context Menu**: Right-click anywhere on an article -> *"⚡ Instant Auto-Post to Social Media"*.
   - **Auto-Post on Popup Open**: Toggle to automatically trigger the post sequence as soon as the extension is opened.
   - **Multi-Platform Batching**: Sequentially prepares posts for Twitter, LinkedIn, Threads, Reddit, Facebook, TikTok, YouTube, etc. with anti-duplicate variations.
+- 🎬 **Carousel Video Slideshow Generator (Desktop Video Sharing)**:
+  - Automatically fetches all images from the blog post and converts them into a smooth **sliding carousel video** with animated titles, Ken Burns zoom effects, and key takeaways!
+  - **Formats**: 📱 **9:16 Vertical** (perfect for TikTok, YouTube Shorts, and Instagram Reels) and 🟦 **1:1 Square** (Feed posts).
+  - 1-Click **"Generate Carousel Video"** & **"Download Video (.webm)"**.
+  - Direct 1-Click **"Upload to TikTok"** & **"YouTube Shorts"** buttons with auto-copied captions and tags!
 - 📔 **Visual Note & Social Card Maker**:
   - Generate aesthetic downloadable/copyable image cards:
     - 🔴 **YouTube Community Post Card** (YouTube red badge, dark theme with glow lighting, bold title, excerpt, and engagement CTA for YouTube Studio Community tab!).
