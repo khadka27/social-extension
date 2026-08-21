@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SocialShare - Blog & Article Sharer</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">SocialShare</h1>
+          <span class="brand-subtitle">Blog & Visual Note Sharer</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="toggle-url-input-btn" class="icon-btn" title="Fetch external URL" aria-label="Toggle URL input">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+          <span>URL</span>
+        </button>
+        <button id="refresh-btn" class="icon-btn" title="Refresh current page metadata" aria-label="Refresh">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs: Standard Post vs Visual Note Card -->
+    <nav class="mode-tabs">
+      <button class="mode-tab active" id="tab-standard-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <span>Standard Post</span>
+      </button>
+      <button class="mode-tab" id="tab-visual-card-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="3" y1="9" x2="21" y2="9"></line>
+          <line x1="9" y1="21" x2="9" y2="9"></line>
+        </svg>
+        <span>📔 Visual Note Card</span>
+      </button>
+    </nav>
+
+    <!-- Custom URL Input Drawer -->
+    <div id="url-drawer" class="url-drawer hidden">
+      <div class="url-input-group">
+        <input type="url" id="custom-url-input" placeholder="Paste any blog or article URL (e.g. https://...)" />
+        <button id="fetch-url-btn" class="btn-primary">
+          <span class="btn-text">Extract</span>
+          <div class="spinner hidden" id="url-spinner"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Status / Loading Indicator -->
+    <div id="loading-state" class="state-container hidden">
+      <div class="pulse-loader"></div>
+      <p class="state-text">Extracting blog title, description & media...</p>
+    </div>
+
+    <div id="error-state" class="state-container error-box hidden">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <p id="error-message">Unable to extract metadata from this page.</p>
+      <button id="retry-btn" class="btn-secondary">Retry</button>
+    </div>
+
+    <!-- Main Content Container -->
+    <main id="main-content" class="main-content">
+      
+      <!-- TAB 1: Live Standard Post Preview Card -->
+      <section class="card-preview-section" id="standard-preview-panel">
+        <div class="section-label-row">
+          <span class="section-label">Post Preview & Details</span>
+          <span id="site-badge" class="site-badge">Active Page</span>
+        </div>
+
+        <!-- Image Box -->
+        <div class="image-preview-wrapper" id="image-wrapper">
+          <img id="post-image" src="" alt="Blog Preview" class="post-image hidden" />
+          <div id="no-image-placeholder" class="no-image-placeholder">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <span>No preview image selected</span>
+          </div>
+          
+          <div class="image-actions-overlay">
+            <button id="select-image-btn" class="overlay-btn" title="Choose from detected images">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <span>Images (<span id="image-count">0</span>)</span>
+            </button>
+            <button id="download-image-btn" class="overlay-btn icon-only" title="Download image">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Image Gallery Picker (Expandable) -->
+        <div id="image-gallery-drawer" class="image-gallery-drawer hidden">
+          <div class="gallery-header">
+            <span>Select Post Image:</span>
+            <button id="close-gallery-btn" class="close-btn">&times;</button>
+          </div>
+          <div id="gallery-grid" class="gallery-grid"></div>
+          <div class="custom-image-row">
+            <input type="url" id="custom-image-url-input" placeholder="Or paste direct image URL..." />
+            <button id="apply-custom-img-btn" class="btn-sm">Apply</button>
+          </div>
+        </div>
+
+        <!-- Title Input -->
+        <div class="input-field-group">
+          <div class="field-header">
+            <label for="post-title">Title / Post Text</label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button id="make-unique-btn" class="text-btn" title="Bypass Twitter duplicate filter with unique hook & emojis">🎲 Make Unique</button>
+              <span id="title-char-count" class="char-count">0</span>
+            </div>
+          </div>
+          <input type="text" id="post-title" class="text-input" placeholder="Blog Title..." />
+        </div>
+
+        <!-- Description Input -->
+        <div class="input-field-group">
+          <div class="field-header">
+            <label for="post-description">Description</label>
+            <span id="desc-char-count" class="char-count">0</span>
+          </div>
+          <textarea id="post-description" class="text-area" rows="3" placeholder="Blog post summary or excerpt..."></textarea>
+        </div>
+
+        <!-- URL Input & Clean Tool -->
+        <div class="input-field-group">
+          <div class="field-header">
+            <label for="post-url">Article URL</label>
+            <button id="clean-url-btn" class="text-btn" title="Remove tracking query parameters">Clean URL</button>
+          </div>
+          <div class="url-input-container">
+            <input type="text" id="post-url" class="text-input font-mono" placeholder="https://..." />
+            <button id="copy-url-btn" class="input-action-btn" title="Copy URL">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tags / Hashtags -->
+        <div class="input-field-group">
+          <div class="field-header">
+            <label>Hashtags</label>
+            <span class="sub-label">Click tag to remove</span>
+          </div>
+          <div id="tags-container" class="tags-container"></div>
+          <div class="add-tag-row">
+            <input type="text" id="new-tag-input" placeholder="Add hashtag (e.g. #technology)" />
+            <button id="add-tag-btn" class="btn-sm">+ Add</button>
+          </div>
+        </div>
+
+        <!-- Style Templates -->
+        <div class="input-field-group">
+          <label class="field-header-label">Share Format Template</label>
+          <div class="template-chips">
+            <button class="chip active" data-template="standard">Standard</button>
+            <button class="chip" data-template="riddle">Riddle / Logic 🧠</button>
+            <button class="chip" data-template="curiosity">Curiosity 99% 🤔</button>
+            <button class="chip" data-template="casual">Casual</button>
+            <button class="chip" data-template="professional">Professional</button>
+            <button class="chip" data-template="minimal">Minimal</button>
+            <button class="chip" data-template="hook">Hook 🔥</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Visual Note Card Generator Panel (Spiral Notebook, Sticky, Dark) -->
+      <section class="card-preview-section hidden" id="visual-card-panel">
+        <div class="section-label-row">
+          <span class="section-label">Visual Note Card Maker</span>
+          <span class="site-badge">Viral Image Mode</span>
+        </div>
+
+        <!-- Canvas Card Display -->
+        <div class="visual-canvas-container">
+          <canvas id="note-card-canvas" width="600" height="600"></canvas>
+        </div>
+
+        <!-- Card Theme Picker -->
+        <div class="input-field-group">
+          <label class="field-header-label">Note Card Style</label>
+          <div class="template-chips">
+            <button class="chip active card-theme-chip" data-card-theme="notebook">📔 Spiral Notebook</button>
+            <button class="chip card-theme-chip" data-card-theme="sticky">🟨 Sticky Note</button>
+            <button class="chip card-theme-chip" data-card-theme="darkglass">🌌 Dark Glass</button>
+          </div>
+        </div>
+
+        <!-- Card Hook Input -->
+        <div class="input-field-group">
+          <label class="field-header-label" for="card-hook-input">Top Hook Line</label>
+          <input type="text" id="card-hook-input" class="text-input" placeholder="e.g. No hints. No clue. Just pure logic...!" value="No hints. No clue. Just pure logic...!" />
+        </div>
+
+        <!-- Card Main Text Input -->
+        <div class="input-field-group">
+          <label class="field-header-label" for="card-text-input">Note Question / Story Text</label>
+          <textarea id="card-text-input" class="text-area" rows="4" placeholder="Write or paste your riddle, quote or excerpt here..."></textarea>
+        </div>
+
+        <!-- Card Footer Note -->
+        <div class="input-field-group">
+          <label class="field-header-label" for="card-footer-input">Bottom Footer / Call-to-Action</label>
+          <input type="text" id="card-footer-input" class="text-input" placeholder="e.g. No winner yet / What's your answer?" value="No winner yet • What's your answer?" />
+        </div>
+
+        <!-- Card Action Buttons -->
+        <div class="card-actions-row">
+          <button id="download-note-card-btn" class="action-card-btn primary-glow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Download Note Image</span>
+          </button>
+          <button id="copy-note-card-btn" class="action-card-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy Image</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Quick Copy Action Bar -->
+      <section class="copy-bar-section">
+        <span class="section-label">Quick Copy</span>
+        <div class="copy-buttons-grid">
+          <button id="copy-post-btn" class="action-card-btn primary-glow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy Full Post</span>
+          </button>
+          <button id="copy-markdown-btn" class="action-card-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 7V4h16v3M9 20h6M12 4v16"></path>
+            </svg>
+            <span>Markdown</span>
+          </button>
+          <button id="copy-html-btn" class="action-card-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            <span>HTML Embed</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Auto-Post Suite -->
+      <section class="auto-post-section">
+        <div class="auto-post-header">
+          <button id="auto-post-trigger-btn" class="auto-post-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+            </svg>
+            <span class="auto-post-title">⚡ Auto-Post to Selected Platforms</span>
+          </button>
+          <button id="toggle-autopost-settings-btn" class="icon-btn" title="Configure Auto-Post Platforms">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Auto-Post Settings Drawer (Collapsible) -->
+        <div id="autopost-settings-drawer" class="autopost-settings-drawer hidden">
+          <div class="settings-title-row">
+            <span>Select Platforms for Auto-Post:</span>
+            <div class="settings-quick-actions">
+              <button id="select-all-platforms-btn" class="text-btn">All</button>
+              <button id="select-none-platforms-btn" class="text-btn">None</button>
+            </div>
+          </div>
+          
+          <div class="platform-checkboxes-grid">
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="twitter" checked />
+              <span>𝕏 (Twitter)</span>
+            </label>
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="linkedin" checked />
+              <span>LinkedIn</span>
+            </label>
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="threads" checked />
+              <span>Threads</span>
+            </label>
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="reddit" checked />
+              <span>Reddit</span>
+            </label>
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="facebook" />
+              <span>Facebook</span>
+            </label>
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="whatsapp" />
+              <span>WhatsApp</span>
+            </label>
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="telegram" />
+              <span>Telegram</span>
+            </label>
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="pinterest" />
+              <span>Pinterest</span>
+            </label>
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="tiktok" />
+              <span>TikTok</span>
+            </label>
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="youtube" />
+              <span>YouTube</span>
+            </label>
+            <label class="platform-check-item">
+              <input type="checkbox" class="auto-plat-check" data-platform="bluesky" />
+              <span>Bluesky</span>
+            </label>
+          </div>
+
+          <div class="autopost-options-row">
+            <label class="option-check-item">
+              <input type="checkbox" id="auto-randomize-check" checked />
+              <span>🎲 Auto-randomize copy (prevents duplicate post errors)</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Social Media Share Grid -->
+      <section class="social-share-section">
+        <span class="section-label">Or 1-Click Individual Share</span>
+        <div class="social-grid">
+          
+          <!-- X / Twitter -->
+          <button class="social-btn social-x" data-platform="twitter" title="Share to X (Twitter)">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </div>
+            <span class="social-name">𝕏 / Twitter</span>
+          </button>
+
+          <!-- LinkedIn -->
+          <button class="social-btn social-linkedin" data-platform="linkedin" title="Share to LinkedIn">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.34a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+              </svg>
+            </div>
+            <span class="social-name">LinkedIn</span>
+          </button>
+
+          <!-- Facebook -->
+          <button class="social-btn social-facebook" data-platform="facebook" title="Share to Facebook">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            </div>
+            <span class="social-name">Facebook</span>
+          </button>
+
+          <!-- WhatsApp -->
+          <button class="social-btn social-whatsapp" data-platform="whatsapp" title="Share to WhatsApp">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm0 18.15c-1.49 0-2.95-.4-4.23-1.16l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c.01 4.54-3.68 8.24-8.19 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.66.31-.23.25-.88.86-.88 2.1 0 1.23.9 2.43 1.03 2.6.12.17 1.78 2.71 4.3 3.8.6.26 1.07.41 1.44.53.61.19 1.16.17 1.6.1.49-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.23-.17-.47-.29z"/>
+              </svg>
+            </div>
+            <span class="social-name">WhatsApp</span>
+          </button>
+
+          <!-- Telegram -->
+          <button class="social-btn social-telegram" data-platform="telegram" title="Share to Telegram">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+              </svg>
+            </div>
+            <span class="social-name">Telegram</span>
+          </button>
+
+          <!-- Reddit -->
+          <button class="social-btn social-reddit" data-platform="reddit" title="Share to Reddit">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.56 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.703zM9.25 12C8.56 12 8 12.56 8 13.25c0 .687.56 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.56-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.688-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.197-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+              </svg>
+            </div>
+            <span class="social-name">Reddit</span>
+          </button>
+
+          <!-- Threads -->
+          <button class="social-btn social-threads" data-platform="threads" title="Share to Threads">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.186 24C5.463 24 0 18.537 0 11.814 0 5.09 5.463 0 12.186 0c6.685 0 11.867 5.378 11.814 12.155-.052 6.643-5.263 11.845-11.814 11.845zm-.055-2.227c5.441 0 9.69-4.27 9.734-9.734.045-5.59-4.148-9.879-9.734-9.879-5.546 0-9.879 4.333-9.879 9.879 0 5.546 4.333 9.734 9.879 9.734zm5.02-9.756c0 3.328-2.316 5.342-5.02 5.342-2.38 0-4.354-1.577-4.808-3.799h2.336c.35 1.054 1.346 1.748 2.472 1.748 1.554 0 2.766-1.168 2.766-3.291 0-2.144-1.212-3.312-2.766-3.312-1.325 0-2.378.895-2.618 2.227h-2.27c.284-2.503 2.38-4.278 4.888-4.278 2.704 0 5.02 2.036 5.02 5.363z"/>
+              </svg>
+            </div>
+            <span class="social-name">Threads</span>
+          </button>
+
+          <!-- Pinterest -->
+          <button class="social-btn social-pinterest" data-platform="pinterest" title="Share to Pinterest">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.367 18.624 0 12.017 0z"/>
+              </svg>
+            </div>
+            <span class="social-name">Pinterest</span>
+          </button>
+
+          <!-- TikTok -->
+          <button class="social-btn social-tiktok" data-platform="tiktok" title="Share to TikTok (Copies caption & opens TikTok)">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.67 6.34 6.34 0 0 0 9.35 22a6.34 6.34 0 0 0 6.33-6.33V9.56a8.16 8.16 0 0 0 4.91 1.63v-3.5a4.86 4.86 0 0 1-1-.0z"/>
+              </svg>
+            </div>
+            <span class="social-name">TikTok</span>
+          </button>
+
+          <!-- YouTube -->
+          <button class="social-btn social-youtube" data-platform="youtube" title="Share to YouTube (Copies community post & opens YouTube Studio)">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+            </div>
+            <span class="social-name">YouTube</span>
+          </button>
+
+          <!-- Bluesky -->
+          <button class="social-btn social-bluesky" data-platform="bluesky" title="Share to Bluesky">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566 1.01 0 1.882 0 4.675c0 1.25.688 8.01 1.066 9.387.892 3.25 3.908 4.28 6.924 3.738-4.524 1.326-5.836 4.708-3.08 7.382 4.417 4.285 7.09-3.882 7.09-3.882s2.673 8.167 7.09 3.882c2.756-2.674 1.444-6.056-3.08-7.382 3.016.542 6.032-.488 6.924-3.738.378-1.377 1.066-8.137 1.066-9.387 0-2.793-2.566-3.665-5.202-1.87C16.046 4.747 13.087 8.686 12 10.8z"/>
+              </svg>
+            </div>
+            <span class="social-name">Bluesky</span>
+          </button>
+
+          <!-- Email -->
+          <button class="social-btn social-email" data-platform="email" title="Share via Email">
+            <div class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </div>
+            <span class="social-name">Email</span>
+          </button>
+
+        </div>
+      </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+      <span id="toast-message">Copied to clipboard!</span>
+    </div>
+  </div>
+
+  <script src="../scripts/extractor.js"></script>
+  <script src="../scripts/social-share.js"></script>
+  <script src="../scripts/card-generator.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
