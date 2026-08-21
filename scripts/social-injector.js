@@ -494,9 +494,54 @@
     }
 
     if (platform === 'linkedin') {
-      showAutoFillBadge(platform, 'Auto-filled LinkedIn Post! (Tip: Press Ctrl+V to attach card/image)');
+      if (postData && postData.image) {
+        autoAttachLinkedInImage(composer, postData.image);
+      }
+      showAutoFillBadge(platform, 'Auto-filled LinkedIn Post & Attached Image!');
     } else {
       showAutoFillBadge(platform);
+    }
+  }
+
+  /**
+   * Automatically attaches an image to LinkedIn post composer
+   */
+  async function autoAttachLinkedInImage(composer, imageUrl) {
+    if (!imageUrl || !imageUrl.startsWith('http')) return;
+
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) return;
+      const blob = await response.blob();
+      const file = new File([blob], 'article-preview.jpg', { type: blob.type || 'image/jpeg' });
+
+      const dt = new DataTransfer();
+      dt.items.add(file);
+
+      // Method 1: Synthesize paste event directly on composer
+      if (composer) {
+        const pasteEvent = new ClipboardEvent('paste', {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: dt
+        });
+        composer.dispatchEvent(pasteEvent);
+      }
+
+      // Method 2: Target LinkedIn hidden file input
+      setTimeout(() => {
+        const fileInputs = document.querySelectorAll('input[type="file"][accept*="image"], input[type="file"].share-creation-state__file-input, input[type="file"]');
+        for (const input of fileInputs) {
+          try {
+            input.files = dt.files;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            break;
+          } catch (e) {}
+        }
+      }, 500);
+    } catch (e) {
+      // Fallback if CORS prevents direct fetch
     }
   }
 

@@ -761,12 +761,15 @@
           title: titleToUse,
           description: state.description,
           url: state.url,
+          image: state.image || (state.images && state.images[0]) || '',
+          images: state.images || [],
           timestamp: Date.now()
         },
         pendingFacebookPost: {
           text: fullPost,
           title: titleToUse,
           description: state.description,
+          image: state.image || (state.images && state.images[0]) || '',
           timestamp: Date.now()
         }
       });
