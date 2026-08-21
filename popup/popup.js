@@ -32,7 +32,9 @@
     videoRatio: '9:16',
     videoSpeed: 2.5,
     generatedVideoBlob: null,
-    generatedVideoUrl: null
+    generatedVideoUrl: null,
+    generatedVideoDataUrl: null,
+    selectedVideoImages: []
   };
 
   // DOM Elements
@@ -102,6 +104,12 @@
     videoProgressFill: document.getElementById('video-progress-fill'),
     videoProgressText: document.getElementById('video-progress-text'),
     videoImageCountBadge: document.getElementById('video-image-count-badge'),
+    videoSelectedCount: document.getElementById('video-selected-count'),
+    videoImagesSelectorGrid: document.getElementById('video-images-selector-grid'),
+    videoSelectAllBtn: document.getElementById('video-select-all-btn'),
+    videoSelectNoneBtn: document.getElementById('video-select-none-btn'),
+    videoCustomImageInput: document.getElementById('video-custom-image-input'),
+    videoAddCustomImageBtn: document.getElementById('video-add-custom-image-btn'),
     videoRatioChips: document.querySelectorAll('.video-ratio-chip'),
     videoSpeedChips: document.querySelectorAll('.video-speed-chip'),
     generateVideoBtn: document.getElementById('generate-video-btn'),
@@ -322,10 +330,9 @@
     elements.cardTextInput.value = state.description || state.title || '';
     state.cardText = elements.cardTextInput.value;
 
-    // Update Video badge
-    if (elements.videoImageCountBadge) {
-      elements.videoImageCountBadge.textContent = `${state.images.length} Images`;
-    }
+    // Update Video badge & Image Selector
+    state.selectedVideoImages = [...state.images];
+    renderVideoImageSelector();
 
     updateCharCounts();
     updateImagePreview();
@@ -340,6 +347,67 @@
       setTimeout(() => {
         executeAutoPost();
       }, 500);
+    }
+  }
+
+  /**
+   * Renders interactive image selector specifically for the Carousel Video generator
+   */
+  function renderVideoImageSelector() {
+    if (!elements.videoImagesSelectorGrid) return;
+    elements.videoImagesSelectorGrid.innerHTML = '';
+
+    if (state.images.length === 0) {
+      elements.videoImagesSelectorGrid.innerHTML = '<p style="color:var(--text-muted);font-size:11px;grid-column:1/-1;padding:8px 0;">No images extracted. Paste an image URL below to add slides.</p>';
+      if (elements.videoSelectedCount) elements.videoSelectedCount.textContent = '0';
+      if (elements.videoImageCountBadge) elements.videoImageCountBadge.textContent = '0 Images';
+      return;
+    }
+
+    if (!Array.isArray(state.selectedVideoImages)) {
+      state.selectedVideoImages = [...state.images];
+    }
+
+    state.images.forEach((imgUrl) => {
+      const isSelected = state.selectedVideoImages.includes(imgUrl);
+      const selectedIndex = state.selectedVideoImages.indexOf(imgUrl);
+
+      const card = document.createElement('div');
+      card.className = `video-thumb-card ${isSelected ? 'selected' : 'unselected'}`;
+      card.title = isSelected ? 'Click to exclude from video' : 'Click to include in video';
+
+      const img = document.createElement('img');
+      img.src = imgUrl;
+      img.className = 'video-thumb-img';
+      img.loading = 'lazy';
+      img.onerror = () => {
+        img.style.display = 'none';
+      };
+
+      const badge = document.createElement('div');
+      badge.className = 'video-thumb-badge';
+      badge.textContent = isSelected ? `✓${selectedIndex + 1}` : '+';
+
+      card.appendChild(img);
+      card.appendChild(badge);
+
+      card.addEventListener('click', () => {
+        if (isSelected) {
+          state.selectedVideoImages = state.selectedVideoImages.filter(u => u !== imgUrl);
+        } else {
+          state.selectedVideoImages.push(imgUrl);
+        }
+        renderVideoImageSelector();
+      });
+
+      elements.videoImagesSelectorGrid.appendChild(card);
+    });
+
+    // Update count display
+    const count = state.selectedVideoImages.length;
+    if (elements.videoSelectedCount) elements.videoSelectedCount.textContent = count;
+    if (elements.videoImageCountBadge) {
+      elements.videoImageCountBadge.textContent = `${count} of ${state.images.length} Selected`;
     }
   }
 
@@ -467,6 +535,15 @@
       return;
     }
 
+    const imagesToUse = (state.selectedVideoImages && state.selectedVideoImages.length > 0)
+      ? state.selectedVideoImages
+      : (state.images.length > 0 ? state.images : (state.image ? [state.image] : []));
+
+    if (!imagesToUse || imagesToUse.length === 0) {
+      showToast('Please select at least 1 image to make the video!');
+      return;
+    }
+
     syncInputsToState();
     elements.videoProgressOverlay.classList.remove('hidden');
     elements.generateVideoBtn.disabled = true;
@@ -478,7 +555,7 @@
         description: state.description,
         url: state.url,
         siteName: state.siteName,
-        images: state.images.length > 0 ? state.images : (state.image ? [state.image] : []),
+        images: imagesToUse,
         aspectRatio: state.videoRatio,
         secondsPerSlide: state.videoSpeed
       }, (percent, statusMsg) => {
@@ -489,13 +566,20 @@
       state.generatedVideoBlob = result.blob;
       state.generatedVideoUrl = result.url;
 
-      // Persist generated video to IndexedDB so popup close never deletes it
+      // Convert to Base64 Data URL for persistent storage and direct drag-and-drop
+      try {
+        state.generatedVideoDataUrl = await blobToDataURL(result.blob);
+      } catch (e) {
+        state.generatedVideoDataUrl = result.url;
+      }
+
+      // Persist generated video to IndexedDB (localStorage) so popup close never deletes it
       await saveCachedVideo(result.blob, {
         title: state.title,
         url: state.url,
         siteName: state.siteName,
         ratio: state.videoRatio
-      });
+      }, state.generatedVideoDataUrl);
 
       // Reveal Video Player
       elements.carouselVideoPlaceholder.classList.add('hidden');
@@ -509,7 +593,7 @@
       elements.videoPostTargets.classList.remove('hidden');
       elements.videoProgressOverlay.classList.add('hidden');
 
-      showToast('Carousel video saved & ready.');
+      showToast('Carousel video saved & ready to drag or save.');
     } catch (err) {
       elements.videoProgressOverlay.classList.add('hidden');
       showToast(err.message || 'Could not generate video.');
@@ -519,8 +603,20 @@
     }
   }
 
+  /**
+   * Converts a Blob to a Base64 Data URL
+   */
+  function blobToDataURL(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
   // =========================================================
-  // IndexedDB Persistent Video Cache
+  // IndexedDB Persistent Video Cache (Local Storage)
   // =========================================================
 
   function openVideoDB() {
@@ -537,7 +633,7 @@
     });
   }
 
-  async function saveCachedVideo(blob, metadata) {
+  async function saveCachedVideo(blob, metadata, dataUrl = null) {
     try {
       const db = await openVideoDB();
       return new Promise((resolve, reject) => {
@@ -546,6 +642,7 @@
         store.put({
           id: 'latest_carousel_video',
           blob: blob,
+          dataUrl: dataUrl,
           metadata: metadata,
           timestamp: Date.now()
         });
@@ -564,12 +661,29 @@
         const tx = db.transaction('videos', 'readonly');
         const store = tx.objectStore('videos');
         const req = store.get('latest_carousel_video');
-        req.onsuccess = () => {
+        req.onsuccess = async () => {
           const item = req.result;
-          if (item && item.blob) {
+          if (item && (item.blob || item.dataUrl)) {
+            let blob = item.blob;
+            let dataUrl = item.dataUrl;
+
+            if (!dataUrl && blob) {
+              try {
+                dataUrl = await blobToDataURL(blob);
+              } catch (e) {}
+            }
+
+            if (!blob && dataUrl) {
+              try {
+                const res = await fetch(dataUrl);
+                blob = await res.blob();
+              } catch (e) {}
+            }
+
             // Restore generated video state
-            state.generatedVideoBlob = item.blob;
-            state.generatedVideoUrl = URL.createObjectURL(item.blob);
+            state.generatedVideoBlob = blob;
+            state.generatedVideoDataUrl = dataUrl;
+            state.generatedVideoUrl = blob ? URL.createObjectURL(blob) : dataUrl;
 
             // Populate video player
             elements.carouselVideoPlaceholder.classList.add('hidden');
@@ -808,14 +922,60 @@
       });
     });
 
+    // Video Image Selector Actions
+    if (elements.videoSelectAllBtn) {
+      elements.videoSelectAllBtn.addEventListener('click', () => {
+        state.selectedVideoImages = [...state.images];
+        renderVideoImageSelector();
+        showToast(`Selected all ${state.images.length} images for video.`);
+      });
+    }
+
+    if (elements.videoSelectNoneBtn) {
+      elements.videoSelectNoneBtn.addEventListener('click', () => {
+        state.selectedVideoImages = [];
+        renderVideoImageSelector();
+        showToast('Cleared video image selection.');
+      });
+    }
+
+    if (elements.videoAddCustomImageBtn && elements.videoCustomImageInput) {
+      elements.videoAddCustomImageBtn.addEventListener('click', () => {
+        const url = elements.videoCustomImageInput.value.trim();
+        if (url && /^https?:\/\//i.test(url)) {
+          if (!state.images.includes(url)) {
+            state.images.push(url);
+          }
+          if (!state.selectedVideoImages.includes(url)) {
+            state.selectedVideoImages.push(url);
+          }
+          elements.videoCustomImageInput.value = '';
+          renderVideoImageSelector();
+          renderGalleryThumbnails();
+          showToast('Custom image added to video slides!');
+        } else {
+          showToast('Please enter a valid image URL starting with http:// or https://');
+        }
+      });
+
+      elements.videoCustomImageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          elements.videoAddCustomImageBtn.click();
+        }
+      });
+    }
+
     elements.generateVideoBtn.addEventListener('click', generateCarouselVideo);
 
     elements.downloadVideoBtn.addEventListener('click', () => {
-      if (state.generatedVideoUrl) {
+      const videoData = state.generatedVideoDataUrl || state.generatedVideoUrl;
+      if (videoData) {
         const a = document.createElement('a');
-        a.href = state.generatedVideoUrl;
+        a.href = videoData;
         a.download = `carousel-${state.siteName || 'article'}-video.webm`;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         showToast('Video downloaded successfully.');
       }
     });
@@ -825,9 +985,10 @@
       copyToClipboard(caption, 'Video downloaded. Drag it into TikTok...');
 
       // Auto-download generated video
-      if (state.generatedVideoUrl) {
+      const videoData = state.generatedVideoDataUrl || state.generatedVideoUrl;
+      if (videoData) {
         const a = document.createElement('a');
-        a.href = state.generatedVideoUrl;
+        a.href = videoData;
         a.download = `tiktok-video-${state.siteName || 'story'}.webm`;
         document.body.appendChild(a);
         a.click();
@@ -854,9 +1015,10 @@
       copyToClipboard(caption, 'Video downloaded. Drag it into YouTube...');
 
       // Auto-download generated video
-      if (state.generatedVideoUrl) {
+      const videoData = state.generatedVideoDataUrl || state.generatedVideoUrl;
+      if (videoData) {
         const a = document.createElement('a');
-        a.href = state.generatedVideoUrl;
+        a.href = videoData;
         a.download = `youtube-shorts-${state.siteName || 'story'}.webm`;
         document.body.appendChild(a);
         a.click();
@@ -871,6 +1033,7 @@
           title: state.title,
           description: state.description,
           url: state.url,
+          tags: state.tags || [],
           timestamp: Date.now()
         }
       });
@@ -878,19 +1041,41 @@
       window.open('https://www.youtube.com/upload', '_blank');
     });
 
-    // Draggable Video Helper Click Event Listener
+    // Draggable Video Helper (Dragstart & Click)
     if (elements.videoDragBadge) {
+      elements.videoDragBadge.addEventListener('dragstart', (e) => {
+        const videoData = state.generatedVideoDataUrl || state.generatedVideoUrl;
+        if (videoData) {
+          const fileName = `carousel-${state.siteName || 'article'}-video.webm`;
+          // Self-contained Base64 Data URL prevents ERR_FILE_NOT_FOUND when popup closes
+          e.dataTransfer.setData('DownloadURL', `video/webm:${fileName}:${videoData}`);
+          e.dataTransfer.setData('text/plain', getFormattedPost());
+          e.dataTransfer.effectAllowed = 'copyMove';
+
+          chrome.storage.local.set({
+            pendingSocialPost: {
+              text: getFormattedPost(),
+              title: state.title,
+              description: state.description,
+              url: state.url,
+              timestamp: Date.now()
+            }
+          });
+        }
+      });
+
       elements.videoDragBadge.addEventListener('click', () => {
-        if (state.generatedVideoUrl) {
+        const videoData = state.generatedVideoDataUrl || state.generatedVideoUrl;
+        if (videoData) {
           const fileName = `carousel-${state.siteName || 'article'}-video.webm`;
           const a = document.createElement('a');
-          a.href = state.generatedVideoUrl;
+          a.href = videoData;
           a.download = fileName;
           document.body.appendChild(a);
           a.click();
           a.remove();
 
-          copyToClipboard(getFormattedPost(), 'Video saved to Downloads! Drag it from your Chrome downloads bar into TikTok or YouTube.');
+          copyToClipboard(getFormattedPost(), 'Video saved to Downloads! Drag it into TikTok or YouTube.');
         }
       });
     }

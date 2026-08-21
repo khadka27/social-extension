@@ -376,14 +376,42 @@
 
       if (platform === 'youtube') {
         // Special multi-field injection for YouTube Video details (Title + Description)
-        const titleEl = document.querySelector('#title-textarea #textbox[contenteditable="true"], ytcp-social-suggestions-textbox[id="title-textarea"] #textbox');
-        const descEl = document.querySelector('#description-textarea #textbox[contenteditable="true"], ytcp-social-suggestions-textbox[id="description-textarea"] #textbox');
+        const titleEl = document.querySelector(
+          '#title-textarea #textbox[contenteditable="true"], ytcp-social-suggestions-textbox[id="title-textarea"] #textbox, ytcp-video-title-editor #textbox, #title-textarea textarea, [aria-label*="title" i][contenteditable="true"], [aria-label*="Titel" i][contenteditable="true"]'
+        );
+        const descEl = document.querySelector(
+          '#description-textarea #textbox[contenteditable="true"], ytcp-social-suggestions-textbox[id="description-textarea"] #textbox, ytcp-video-description-editor #textbox, #description-textarea textarea, [aria-label*="description" i][contenteditable="true"], [aria-label*="Beschreibung" i][contenteditable="true"]'
+        );
+
+        let titleUpdated = false;
+        let descUpdated = false;
 
         if (titleEl && postData && postData.title) {
-          injectTextIntoComposer(titleEl, postData.title, platform);
+          const currentTitle = titleEl.textContent ? titleEl.textContent.trim() : '';
+          if (currentTitle !== postData.title.trim()) {
+            injectTextIntoComposer(titleEl, postData.title, platform, true);
+          }
+          titleUpdated = (titleEl.textContent && titleEl.textContent.trim() === postData.title.trim());
         }
-        if (descEl && text) {
-          injectTextIntoComposer(descEl, text, platform);
+
+        if (descEl && postData) {
+          // Format YouTube description: summary + article URL + hashtags (without repeating the title at the top)
+          const descToInject = postData.description
+            ? [
+                postData.description,
+                postData.url ? `Read full article: ${postData.url}` : '',
+                postData.tags && postData.tags.length ? postData.tags.join(' ') : ''
+              ].filter(Boolean).join('\n\n')
+            : (postData.text || text);
+
+          const currentDesc = descEl.textContent ? descEl.textContent.trim() : '';
+          if (currentDesc !== descToInject.trim()) {
+            injectTextIntoComposer(descEl, descToInject, platform, true);
+          }
+          descUpdated = (descEl.textContent && descEl.textContent.trim().length > 0);
+        }
+
+        if (titleUpdated && descUpdated) {
           clearInterval(interval);
           chrome.storage.local.remove(['pendingSocialPost', 'pendingFacebookPost']);
           return;
@@ -415,20 +443,29 @@
   /**
    * Injects formatted text into contenteditable / textarea and triggers React/Vue/DraftJS/Polymer events
    */
-  function injectTextIntoComposer(composer, text, platform) {
-    composer.focus();
+  function injectTextIntoComposer(composer, text, platform, forceOverwrite = false) {
+    if (!composer || !text) return;
 
-    if (composer.textContent && composer.textContent.trim().length > 15) {
+    if (composer.textContent && composer.textContent.trim() === text.trim()) {
       return;
     }
 
+    if (!forceOverwrite && composer.textContent && composer.textContent.trim().length > 15) {
+      return;
+    }
+
+    composer.focus();
+
     try {
-      // 1. Standard execCommand
+      // 1. Select all & Delete existing text (e.g. video filename placeholder on YouTube)
       document.execCommand('selectAll', false, null);
+      document.execCommand('delete', false, null);
+
+      // 2. Insert new clean text
       const success = document.execCommand('insertText', false, text);
 
-      if (!success || !composer.textContent || composer.textContent.trim().length === 0) {
-        // 2. DraftJS / Lexical construction fallback
+      if (!success || composer.textContent.trim() !== text.trim()) {
+        // Fallback insertion
         composer.innerHTML = '';
         const lines = text.split('\n');
         lines.forEach((line) => {
@@ -440,10 +477,11 @@
           }
           composer.appendChild(p);
         });
-
-        composer.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-        composer.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
       }
+
+      composer.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+      composer.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+      composer.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: ' ' }));
     } catch (e) {
       composer.innerText = text;
       composer.dispatchEvent(new Event('input', { bubbles: true }));

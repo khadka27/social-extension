@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SocialShare - Chrome Extension | 1-Click Blog Extractor, Carousel Video Maker & Auto-Poster</title>
+  <meta name="description" content="Download SocialShare Chrome Extension. Extract blog metadata, create viral sliding carousel videos for TikTok & Shorts, generate visual note cards, and auto-post seamlessly." />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header class="site-header">
+    <div class="container header-container">
+      <a href="#hero" class="brand-logo">
+        <div class="logo-icon-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+        </div>
+        <span class="brand-name">SocialShare</span>
+        <span class="version-tag">v1.0.0</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#install-guide" class="nav-link">Installation Guide</a>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#shortcuts" class="nav-link">Shortcuts</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+      </nav>
+
+      <div class="header-actions">
+        <a href="social-extension.zip" download="social-extension.zip" id="nav-download-btn" class="btn btn-primary btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Download .ZIP</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section id="hero" class="hero-section">
+    <div class="container hero-container">
+      <div class="hero-badge">
+        <span class="pulse-dot"></span>
+        <span>Chrome Extension for Content Creators & Marketers</span>
+      </div>
+
+      <h1 class="hero-title">
+        Extract, Transform & Share Content <br />
+        Across All Social Media in 1 Click
+      </h1>
+
+      <p class="hero-subtitle">
+        Turn any blog article or URL into viral TikTok & YouTube Shorts sliding videos, beautiful visual note cards, and auto-fill formatted posts across Facebook, LinkedIn, 𝕏, Threads & Reddit.
+      </p>
+
+      <!-- Primary Action Buttons -->
+      <div class="hero-cta-group">
+        <a href="social-extension.zip" download="social-extension.zip" id="hero-download-btn" class="btn btn-primary btn-lg glow-button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <div class="btn-text-block">
+            <span class="btn-main-text">Download Extension</span>
+            <span class="btn-sub-text">social-extension.zip (60 KB)</span>
+          </div>
+        </a>
+
+        <a href="#install-guide" class="btn btn-secondary btn-lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="10 8 16 12 10 16 10 8"></polygon>
+          </svg>
+          <span>How to Install</span>
+        </a>
+      </div>
+
+      <!-- Quick Highlights Bar -->
+      <div class="hero-stats-row">
+        <div class="stat-item">
+          <span class="stat-icon">⚡</span>
+          <span class="stat-text">Manifest V3 Secure</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">🎬</span>
+          <span class="stat-text">Sliding Video Maker</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">📝</span>
+          <span class="stat-text">Canvas Note Cards</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">🚀</span>
+          <span class="stat-text">Universal Auto-Post</span>
+        </div>
+      </div>
+
+      <!-- Extension Mockup Preview -->
+      <div class="hero-preview-mockup">
+        <div class="mockup-window-bar">
+          <div class="window-dots">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <div class="mockup-url-bar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span>chrome-extension://socialshare/popup/popup.html</span>
+          </div>
+        </div>
+        
+        <div class="mockup-content-grid">
+          <!-- Left Mini Card: Video Generator -->
+          <div class="mockup-feature-card">
+            <div class="mockup-card-header">
+              <span class="badge-label">🎬 Video Generator</span>
+              <span class="ratio-badge">9:16 Vertical</span>
+            </div>
+            <div class="mockup-video-preview">
+              <div class="mockup-play-icon">▶</div>
+              <div class="mockup-video-caption">
+                <span>Slide 1/4 • Smooth Ken Burns Zoom</span>
+              </div>
+            </div>
+            <div class="mockup-chips">
+              <span class="mockup-chip">✓ Slide 1</span>
+              <span class="mockup-chip">✓ Slide 2</span>
+              <span class="mockup-chip">✓ Slide 3</span>
+            </div>
+          </div>
+
+          <!-- Middle Mini Card: Visual Note Card -->
+          <div class="mockup-feature-card">
+            <div class="mockup-card-header">
+              <span class="badge-label">📝 Note Card Maker</span>
+              <span class="ratio-badge">1:1 Square</span>
+            </div>
+            <div class="mockup-note-card">
+              <p class="note-hook">No hints. No clue. Just pure logic...!</p>
+              <p class="note-body">Extract any article excerpt and convert it to a viral image.</p>
+              <p class="note-footer">No winner yet • What's your answer?</p>
+            </div>
+            <div class="mockup-actions">
+              <span class="mockup-btn">Copy Image (Ctrl+V)</span>
+            </div>
+          </div>
+
+          <!-- Right Mini Card: 1-Click Auto Post -->
+          <div class="mockup-feature-card">
+            <div class="mockup-card-header">
+              <span class="badge-label">🚀 1-Click Auto-Share</span>
+              <span class="ratio-badge">7 Networks</span>
+            </div>
+            <div class="mockup-social-grid">
+              <div class="mockup-social-btn">Facebook</div>
+              <div class="mockup-social-btn">LinkedIn</div>
+              <div class="mockup-social-btn">𝕏 / Twitter</div>
+              <div class="mockup-social-btn">Threads</div>
+              <div class="mockup-social-btn">Reddit</div>
+              <div class="mockup-social-btn">YouTube</div>
+            </div>
+            <p class="mockup-auto-text">Auto-fills Title, Clean URL & Hashtags directly into composers.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step-by-Step Installation Guide -->
+  <section id="install-guide" class="guide-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">Fast & Easy Setup</span>
+        <h2 class="section-title">How to Install SocialShare in 60 Seconds</h2>
+        <p class="section-desc">
+          Works seamlessly on <strong>Google Chrome</strong>, <strong>Brave</strong>, <strong>Microsoft Edge</strong>, and <strong>Arc Browser</strong>. No Developer account required.
+        </p>
+      </div>
+
+      <!-- Browser Selector Tabs -->
+      <div class="browser-tabs">
+        <button class="browser-tab active" data-browser="chrome">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+          Google Chrome
+        </button>
+        <button class="browser-tab" data-browser="brave">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+          Brave Browser
+        </button>
+        <button class="browser-tab" data-browser="edge">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+          Microsoft Edge
+        </button>
+      </div>
+
+      <!-- Steps Grid -->
+      <div class="steps-grid">
+        <!-- Step 1 -->
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <div class="step-icon-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </div>
+          <h3 class="step-title">Download & Unzip</h3>
+          <p class="step-text">
+            Click the download button to get <code>social-extension.zip</code>. Right-click the downloaded file and select <strong>"Extract All"</strong> (or Unzip) into a folder on your computer.
+          </p>
+          <a href="social-extension.zip" download="social-extension.zip" class="step-action-link">
+            <span>Download ZIP File</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <div class="step-icon-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </div>
+          <h3 class="step-title">Open Extensions Page</h3>
+          <p class="step-text">
+            In your browser address bar, open the extensions manager page:
+          </p>
+          <div class="code-copy-box">
+            <code id="ext-url-code">chrome://extensions</code>
+            <button id="copy-ext-url-btn" class="copy-mini-btn" title="Copy to clipboard">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <div class="step-icon-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="5" width="22" height="14" rx="7" ry="7"></rect>
+              <circle cx="16" cy="12" r="3"></circle>
+            </svg>
+          </div>
+          <h3 class="step-title">Enable Developer Mode</h3>
+          <p class="step-text">
+            In the top-right corner of the Extensions page, switch the <strong>Developer mode</strong> toggle to <strong>ON</strong>.
+          </p>
+          <div class="step-tip">
+            💡 This enables the "Load unpacked" button for local extensions.
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-card">
+          <div class="step-number">04</div>
+          <div class="step-icon-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              <line x1="12" y1="11" x2="12" y2="17"></line>
+              <line x1="9" y1="14" x2="15" y2="14"></line>
+            </svg>
+          </div>
+          <h3 class="step-title">Click "Load Unpacked"</h3>
+          <p class="step-text">
+            Click the <strong>"Load unpacked"</strong> button in the top-left corner, and select the unzipped <code>social-extension</code> folder (the folder containing <code>manifest.json</code>).
+          </p>
+          <div class="step-tip">
+            Done! SocialShare will appear in your extensions list.
+          </div>
+        </div>
+      </div>
+
+      <!-- Pin Extension Pro-Tip Banner -->
+      <div class="pro-tip-banner">
+        <div class="banner-icon">📌</div>
+        <div class="banner-text">
+          <strong>Pro-Tip: Pin SocialShare for 1-Click Access</strong>
+          <p>Click the puzzle piece icon (🧩) in Chrome's top-right toolbar and click the pin icon next to <strong>SocialShare</strong> so it's always one click away while browsing any article!</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Features Deep Dive -->
+  <section id="features" class="features-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">Packed with Features</span>
+        <h2 class="section-title">Everything You Need to Repurpose & Share Content</h2>
+        <p class="section-desc">Designed from the ground up for high-impact social media marketing and effortless content distribution.</p>
+      </div>
+
+      <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🎬</div>
+          <h3 class="feature-title">Sliding Image Carousel Video Maker</h3>
+          <p class="feature-description">
+            Turn static blog images into smooth sliding carousel videos in 9:16 vertical (TikTok/Reels/Shorts) or 1:1 square. Features Ken Burns cinematic zoom, animated typography, and an interactive slide image selector.
+          </p>
+          <ul class="feature-list">
+            <li>✓ Custom slide image picker (select exactly which images to use)</li>
+            <li>✓ Smooth cubic sliding transitions with top progress bar</li>
+            <li>✓ 1-Click export to TikTok & YouTube Shorts</li>
+            <li>✓ Persistent local storage with direct drag & drop</li>
+          </ul>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📝</div>
+          <h3 class="feature-title">Viral Visual Note Card Generator</h3>
+          <p class="feature-description">
+            Convert riddles, questions, quotes, and excerpts into eye-catching graphic cards rendered in real-time on HTML5 canvas. Ideal for YouTube community posts, Instagram, and LinkedIn.
+          </p>
+          <ul class="feature-list">
+            <li>✓ 4 Premium Styles: Spiral Notebook, YouTube Post, Sticky Note & Dark Glass</li>
+            <li>✓ 1-Click "Copy Image" to clipboard for instant Ctrl+V pasting</li>
+            <li>✓ High-resolution 700x700 PNG image export</li>
+            <li>✓ Customizable top hook, main question & footer CTA</li>
+          </ul>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🚀</div>
+          <h3 class="feature-title">Universal 1-Click Auto-Poster & Auto-Fill</h3>
+          <p class="feature-description">
+            Tired of copying and pasting? SocialShare automatically injects clean titles, summaries, clean links, and hashtags directly into the native post composers of 7 major social networks.
+          </p>
+          <ul class="feature-list">
+            <li>✓ Facebook, LinkedIn, 𝕏/Twitter, Threads, Reddit, YouTube & TikTok</li>
+            <li>✓ Floating assistant widget for YouTube Studio & TikTok Studio</li>
+            <li>✓ Clean URL utility (strips tracking UTM parameters automatically)</li>
+            <li>✓ Background auto-post queue for batch publishing</li>
+          </ul>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🔍</div>
+          <h3 class="feature-title">Universal Blog & Article Extractor</h3>
+          <p class="feature-description">
+            Extracts rich metadata from any webpage with 4 layers of intelligent fallback: OpenGraph tags, JSON-LD structured data, Twitter cards, and deep HTML DOM heuristics.
+          </p>
+          <ul class="feature-list">
+            <li>✓ Automatic high-resolution image discovery & gallery picker</li>
+            <li>✓ AI-style headline rewriting ("Make Unique" filter bypass)</li>
+            <li>✓ Auto-generated hashtag extractor with click-to-remove badges</li>
+            <li>✓ Support for inspecting external URLs without leaving your current tab</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Keyboard Shortcuts Section -->
+  <section id="shortcuts" class="shortcuts-section">
+    <div class="container">
+      <div class="shortcut-box">
+        <div class="shortcut-info">
+          <span class="shortcut-tag">⚡ Power-User Feature</span>
+          <h3 class="shortcut-title">Instant Background Auto-Post Hotkey</h3>
+          <p class="shortcut-desc">
+            Press <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> on any webpage to instantly extract the article and auto-publish to all your configured social networks in the background.
+          </p>
+        </div>
+        <div class="shortcut-keys">
+          <div class="key-cap">Alt</div>
+          <span class="key-plus">+</span>
+          <div class="key-cap">Shift</div>
+          <span class="key-plus">+</span>
+          <div class="key-cap">S</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="faq-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">Have Questions?</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+      </div>
+
+      <div class="faq-accordion">
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Which browsers are supported?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>SocialShare is built on Manifest V3 and is 100% compatible with all Chromium-based browsers including Google Chrome, Brave Browser, Microsoft Edge, Opera, Arc, and Vivaldi.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>How do I update the extension when a new version is released?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>Download the new <code>social-extension.zip</code> file, extract the files over your existing folder, and click the <strong>Refresh / Reload icon (🔄)</strong> on the extension card in <code>chrome://extensions</code>.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Does this extension send my browsing data to external servers?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>No. SocialShare runs completely locally on your computer. All metadata extraction, canvas note card rendering, video rendering, and IndexedDB caching happen client-side in your browser.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>How does the Drag & Drop video feature work?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>When a carousel video is generated, clicking <strong>Download Video</strong> or dragging the video card saves the self-contained <code>.webm</code> file to your computer. You can then drop it straight into TikTok Studio or YouTube Studio without any browser file errors.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer CTA Bar -->
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-brand">
+        <div class="logo-icon-box sm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+        </div>
+        <span class="footer-brand-name">SocialShare Extension</span>
+      </div>
+
+      <p class="footer-copy">
+        Free & Open Source under MIT License • Built for modern content creators.
+      </p>
+
+      <div class="footer-actions">
+        <a href="social-extension.zip" download="social-extension.zip" class="btn btn-primary btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Download (social-extension.zip)</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="toast hidden">
+    <span id="toast-message">Copied to clipboard!</span>
+  </div>
+
+  <!-- Main JavaScript File -->
+  <script src="index.js"></script>
+</body>
+</html>

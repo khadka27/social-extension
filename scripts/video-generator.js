@@ -64,7 +64,7 @@
       // 1. Preload available images
       if (onProgress) onProgress(10, 'Loading article images...');
       const loadedImages = [];
-      for (const imgUrl of images.slice(0, 6)) {
+      for (const imgUrl of images.slice(0, 15)) {
         try {
           const img = await this.loadImage(imgUrl);
           if (img && img.naturalWidth > 50) {

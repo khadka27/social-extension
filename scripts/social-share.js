@@ -139,7 +139,6 @@
           text: text
         });
         if (tags) params.set('hashtags', tags);
-        if (data.siteName) params.set('via', data.siteName.replace(/\s+/g, ''));
         return `https://twitter.com/intent/tweet?${params.toString()}`;
       }
     },

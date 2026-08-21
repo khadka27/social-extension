@@ -320,6 +320,22 @@
           </div>
         </div>
 
+        <!-- Video Images Picker / Selector -->
+        <div class="input-field-group" style="margin-top: 10px;">
+          <div class="field-header">
+            <label>Select Slides / Images (<span id="video-selected-count">0</span> selected)</label>
+            <div style="display: flex; gap: 8px;">
+              <button id="video-select-all-btn" class="text-btn" type="button">Select All</button>
+              <button id="video-select-none-btn" class="text-btn" type="button">Clear</button>
+            </div>
+          </div>
+          <div id="video-images-selector-grid" class="video-images-selector-grid"></div>
+          <div class="add-tag-row" style="margin-top: 6px;">
+            <input type="url" id="video-custom-image-input" placeholder="Or paste direct image URL to add to video..." />
+            <button id="video-add-custom-image-btn" class="btn-sm" type="button">+ Add</button>
+          </div>
+        </div>
+
         <!-- Video Controls / Aspect Ratio -->
         <div class="input-field-group" style="margin-top: 10px;">
           <label class="field-header-label">Video Format</label>
@@ -369,8 +385,8 @@
           </button>
         </div>
 
-        <!-- Draggable Video Helper Card for 1-Drop Uploads -->
-        <div id="video-drag-badge" class="video-drag-badge hidden" title="Click to download video and drag from Chrome Downloads bar">
+        <!-- Draggable Video Card for 1-Drop Uploads & Persistent Storage -->
+        <div id="video-drag-badge" class="video-drag-badge hidden" draggable="true" title="Drag video directly to your Desktop/Dropzone, or click to download">
           <div class="drag-grip-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -379,8 +395,8 @@
             </svg>
           </div>
           <div class="drag-text-group">
-            <span class="drag-title">Download & Ready to Upload</span>
-            <span class="drag-subtitle">Click to save, then drag directly from Chrome Downloads bar</span>
+            <span class="drag-title">Drag & Drop or Click to Save</span>
+            <span class="drag-subtitle">Drag directly to Desktop/Uploads or click to download</span>
           </div>
           <div class="drag-action-arrow">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
