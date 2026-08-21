@@ -821,7 +821,7 @@ body::-webkit-scrollbar-thumb:hover {
   border-radius: var(--radius-sm);
   padding: 8px 12px;
   margin-top: 8px;
-  cursor: grab;
+  cursor: pointer;
   user-select: none;
   transition: all 0.2s ease;
 }
@@ -833,7 +833,7 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 .video-drag-badge:active {
-  cursor: grabbing;
+  transform: translateY(0);
 }
 
 .drag-grip-icon {

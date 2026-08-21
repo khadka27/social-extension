@@ -369,21 +369,18 @@
           </button>
         </div>
 
-        <!-- Draggable Video Badge for 1-Drop Uploads -->
-        <div id="video-drag-badge" class="video-drag-badge hidden" draggable="true" title="Drag this video directly onto YouTube or TikTok upload zone!">
+        <!-- Draggable Video Helper Card for 1-Drop Uploads -->
+        <div id="video-drag-badge" class="video-drag-badge hidden" title="Click to download video and drag from Chrome Downloads bar">
           <div class="drag-grip-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="9" cy="6" r="1.5"></circle>
-              <circle cx="15" cy="6" r="1.5"></circle>
-              <circle cx="9" cy="12" r="1.5"></circle>
-              <circle cx="15" cy="12" r="1.5"></circle>
-              <circle cx="9" cy="18" r="1.5"></circle>
-              <circle cx="15" cy="18" r="1.5"></circle>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
           </div>
           <div class="drag-text-group">
-            <span class="drag-title">Drag & Drop Video to Upload</span>
-            <span class="drag-subtitle">Drag directly into YouTube or TikTok dropzone</span>
+            <span class="drag-title">Download & Ready to Upload</span>
+            <span class="drag-subtitle">Click to save, then drag directly from Chrome Downloads bar</span>
           </div>
           <div class="drag-action-arrow">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

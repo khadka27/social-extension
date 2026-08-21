@@ -878,26 +878,19 @@
       window.open('https://www.youtube.com/upload', '_blank');
     });
 
-    // Draggable Video Event Listener for Native Drop to Webpages
+    // Draggable Video Helper Click Event Listener
     if (elements.videoDragBadge) {
-      elements.videoDragBadge.addEventListener('dragstart', (e) => {
+      elements.videoDragBadge.addEventListener('click', () => {
         if (state.generatedVideoUrl) {
-          const fileName = `carousel-video-${state.siteName || 'story'}.webm`;
-          const downloadUrl = `video/webm:${fileName}:${state.generatedVideoUrl}`;
-          e.dataTransfer.setData('DownloadURL', downloadUrl);
-          e.dataTransfer.setData('text/plain', getFormattedPost());
-          e.dataTransfer.setData('text/uri-list', state.generatedVideoUrl);
-          e.dataTransfer.effectAllowed = 'copyMove';
+          const fileName = `carousel-${state.siteName || 'article'}-video.webm`;
+          const a = document.createElement('a');
+          a.href = state.generatedVideoUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
 
-          chrome.storage.local.set({
-            pendingSocialPost: {
-              text: getFormattedPost(),
-              title: state.title,
-              description: state.description,
-              url: state.url,
-              timestamp: Date.now()
-            }
-          });
+          copyToClipboard(getFormattedPost(), 'Video saved to Downloads! Drag it from your Chrome downloads bar into TikTok or YouTube.');
         }
       });
     }
