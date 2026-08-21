@@ -281,6 +281,87 @@
         </div>
       </section>
 
+      <!-- TAB 3: Carousel Video Slideshow Panel -->
+      <section class="card-preview-section hidden" id="carousel-video-panel">
+        <div class="section-label-row">
+          <span class="section-label">🎬 Sliding Image Carousel Video</span>
+          <span class="site-badge" id="video-image-count-badge">0 Images</span>
+        </div>
+
+        <!-- Video Player / Live Preview Container -->
+        <div class="video-preview-wrapper" id="video-wrapper">
+          <video id="carousel-video-player" class="carousel-video-player hidden" controls autoplay loop playsinline></video>
+          
+          <div id="carousel-video-placeholder" class="carousel-video-placeholder">
+            <div class="video-icon-circle">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+            </div>
+            <p class="placeholder-title">Turn Article Images into a Video</p>
+            <p class="placeholder-subtitle">Smooth sliding transitions + Ken Burns zoom + animated title & captions</p>
+          </div>
+
+          <!-- Video Progress Bar Overlay -->
+          <div id="video-progress-overlay" class="video-progress-overlay hidden">
+            <div class="progress-spinner"></div>
+            <div class="progress-bar-track">
+              <div id="video-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+            <span id="video-progress-text" class="progress-status-text">Generating sliding video...</span>
+          </div>
+        </div>
+
+        <!-- Video Controls / Aspect Ratio -->
+        <div class="input-field-group" style="margin-top: 10px;">
+          <label class="field-header-label">Video Format</label>
+          <div class="template-chips">
+            <button class="chip active video-ratio-chip" data-ratio="9:16">📱 9:16 Vertical (TikTok/Shorts/Reels)</button>
+            <button class="chip video-ratio-chip" data-ratio="1:1">🟦 1:1 Square (Feed)</button>
+          </div>
+        </div>
+
+        <!-- Slide Speed Selector -->
+        <div class="input-field-group">
+          <label class="field-header-label">Slide Speed</label>
+          <div class="template-chips">
+            <button class="chip video-speed-chip" data-speed="2">⚡ Fast (2s)</button>
+            <button class="chip active video-speed-chip" data-speed="2.5">✨ Standard (2.5s)</button>
+            <button class="chip video-speed-chip" data-speed="3.5">⏳ Relaxed (3.5s)</button>
+          </div>
+        </div>
+
+        <!-- Video Action Buttons -->
+        <div class="card-actions-row">
+          <button id="generate-video-btn" class="action-card-btn primary-glow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span id="generate-video-btn-text">Generate Carousel Video</span>
+          </button>
+          
+          <button id="download-video-btn" class="action-card-btn hidden">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Download Video</span>
+          </button>
+        </div>
+
+        <!-- Quick Post Video To TikTok / Shorts Buttons -->
+        <div class="video-post-targets hidden" id="video-post-targets" style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="action-card-btn" id="post-video-tiktok-btn" style="background: rgba(254, 44, 85, 0.15); border-color: #FE2C55; color: #FF7D9E;">
+            <span>🎵 Upload to TikTok</span>
+          </button>
+          <button class="action-card-btn" id="post-video-shorts-btn" style="background: rgba(255, 0, 0, 0.15); border-color: #FF0000; color: #FF6666;">
+            <span>🎥 YouTube Shorts</span>
+          </button>
+        </div>
+      </section>
+
       <!-- Quick Copy Action Bar -->
       <section class="copy-bar-section">
         <span class="section-label">Quick Copy</span>
@@ -537,6 +618,7 @@
   <script src="../scripts/extractor.js"></script>
   <script src="../scripts/social-share.js"></script>
   <script src="../scripts/card-generator.js"></script>
+  <script src="../scripts/video-generator.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
