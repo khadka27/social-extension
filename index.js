@@ -87,11 +87,11 @@
    * Download button toast notification
    */
   function setupDownloadTriggers() {
-    const downloadBtns = document.querySelectorAll('a[download]');
+    const downloadBtns = document.querySelectorAll('a[href*="github.com"][href*=".zip"]');
 
     downloadBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
-        showToast('Downloading social-extension.zip...');
+        showToast('Downloading extension ZIP from GitHub...');
       });
     });
   }
