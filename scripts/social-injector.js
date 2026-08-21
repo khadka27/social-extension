@@ -87,8 +87,8 @@
     if (!postData) return;
 
     const now = Date.now();
-    // Only process if created within the last 120 seconds
-    if (now - (postData.timestamp || 0) > 120000) {
+    // Only process if created within the last 180 seconds
+    if (now - (postData.timestamp || 0) > 180000) {
       chrome.storage.local.remove(['pendingSocialPost', 'pendingFacebookPost']);
       return;
     }
@@ -108,11 +108,30 @@
     // Special TikTok Assistant Widget & Live Polling
     if (currentPlat === 'tiktok') {
       renderTikTokFloatingHelper(postData);
+      highlightTikTokDropzone();
     }
 
     // Start polling to find the composer
     attemptComposerInjection(currentPlat, textToInject);
   });
+
+  /**
+   * Highlights TikTok dropzone with visual animation
+   */
+  function highlightTikTokDropzone() {
+    let checkCount = 0;
+    const interval = setInterval(() => {
+      checkCount++;
+      const dropzone = document.querySelector('.upload-container, div[class*="drop-zone"], div[class*="upload-card"], div[class*="uploader"]');
+      if (dropzone) {
+        clearInterval(interval);
+        dropzone.style.transition = 'all 0.3s ease';
+        dropzone.style.border = '2px dashed #FE2C55';
+        dropzone.style.backgroundColor = 'rgba(254, 44, 85, 0.04)';
+      }
+      if (checkCount > 20) clearInterval(interval);
+    }, 500);
+  }
 
   /**
    * Renders a floating helper assistant on YouTube Studio
@@ -154,21 +173,34 @@
         <strong>${escapeHtml(titleSnippet)}</strong>
       </p>
       <div style="display: flex; flex-direction: column; gap: 6px;">
-        <button id="yt-autofill-btn" style="background: #FF0000; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
+        <button id="yt-select-file-btn" style="background: #FF0000; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          📂 Select Video From Downloads
+        </button>
+        <button id="yt-autofill-btn" style="background: rgba(255, 0, 0, 0.18); border: 1px solid #FF0000; color: #FF6666; padding: 7px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
           ✨ Auto-Fill Title & Description
         </button>
         <button id="yt-copy-btn" style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 7px 12px; border-radius: 8px; font-size: 11.5px; cursor: pointer;">
           📋 Copy Description & Tags
         </button>
       </div>
-      <p style="font-size: 10px; color: #888; margin: 8px 0 0 0; text-align: center;">
-        💡 Drag your downloaded video into the upload box, then click Auto-Fill!
+      <p style="font-size: 10px; color: #AAA; margin: 8px 0 0 0; text-align: center;">
+        💡 Your generated video was downloaded — select it from Downloads!
       </p>
     `;
 
     document.body.appendChild(helper);
 
     helper.querySelector('#close-yt-helper-btn').addEventListener('click', () => helper.remove());
+
+    helper.querySelector('#yt-select-file-btn').addEventListener('click', () => {
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) {
+        fileInput.click();
+      } else {
+        const uploadBtn = document.querySelector('ytcp-button#upload-icon, button#upload-button, ytcp-button[aria-label*="Upload"], #create-icon, button[aria-label="Create"]');
+        if (uploadBtn) uploadBtn.click();
+      }
+    });
 
     helper.querySelector('#yt-copy-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(textToUse);
@@ -223,21 +255,35 @@
         <strong>${escapeHtml(titleSnippet)}</strong>
       </p>
       <div style="display: flex; flex-direction: column; gap: 6px;">
-        <button id="tiktok-autofill-btn" style="background: #FE2C55; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
+        <button id="tiktok-select-file-btn" style="background: #FE2C55; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          📂 Select Video From Downloads
+        </button>
+        <button id="tiktok-autofill-btn" style="background: rgba(254, 44, 85, 0.18); border: 1px solid #FE2C55; color: #FF7D9E; padding: 7px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
           ✨ Auto-Fill Caption in Box
         </button>
         <button id="tiktok-copy-btn" style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 7px 12px; border-radius: 8px; font-size: 11.5px; cursor: pointer;">
           📋 Copy Caption & Hashtags
         </button>
       </div>
-      <p style="font-size: 10px; color: #888; margin: 8px 0 0 0; text-align: center;">
-        💡 Drag your photo/video into the box above, then click Auto-Fill!
+      <p style="font-size: 10px; color: #AAA; margin: 8px 0 0 0; text-align: center;">
+        💡 Click "Select Video" or drag the downloaded video file into the box above!
       </p>
     `;
 
     document.body.appendChild(helper);
 
     helper.querySelector('#close-tiktok-helper-btn').addEventListener('click', () => helper.remove());
+
+    // Trigger file chooser directly on TikTok input
+    helper.querySelector('#tiktok-select-file-btn').addEventListener('click', () => {
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) {
+        fileInput.click();
+      } else {
+        const selectBtn = document.querySelector('button[class*="upload"], button:has-text("Select video"), div[class*="select-button"]');
+        if (selectBtn) selectBtn.click();
+      }
+    });
 
     helper.querySelector('#tiktok-copy-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(textToUse);
@@ -250,6 +296,16 @@
     helper.querySelector('#tiktok-autofill-btn').addEventListener('click', () => {
       attemptComposerInjection('tiktok', textToUse);
     });
+
+    // Listen for file drop / selection on TikTok to trigger auto-fill automatically
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) {
+      fileInput.addEventListener('change', () => {
+        setTimeout(() => {
+          attemptComposerInjection('tiktok', textToUse);
+        }, 1500);
+      });
+    }
   }
 
   /**
