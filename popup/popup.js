@@ -497,7 +497,24 @@
         copyToClipboard(caption, 'YouTube post copied to clipboard! Opening YouTube 🎥');
         window.open(shareUrl, '_blank');
         return;
+      } else if (platformKey === 'facebook') {
+        const fullPost = getFormattedPost();
+        copyToClipboard(fullPost, '📋 Title & Description copied! Press Ctrl+V in Facebook');
+        const width = 620;
+        const height = 580;
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+        window.open(
+          shareUrl,
+          `share_${platformKey}_${Date.now()}`,
+          `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+        );
+        return;
       } else {
+        // Automatically copy full post text as backup for all platforms
+        const fullPost = getFormattedPost();
+        copyToClipboard(fullPost, `Opening ${platform.name}... 📋 Text copied!`);
+
         // Open in a centered popup window
         const width = 600;
         const height = 540;
@@ -509,7 +526,6 @@
           `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
         );
       }
-      showToast(`Opening ${platform.name}... 🚀`);
     }
   }
 

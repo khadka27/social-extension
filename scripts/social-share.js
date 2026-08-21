@@ -132,7 +132,10 @@
       icon: 'twitter',
       color: '#000000',
       getUrl: (data) => {
-        const text = data.title ? `${data.title}` : '';
+        let text = data.title ? `${data.title}` : '';
+        if (data.description) {
+          text += `\n\n${data.description}`;
+        }
         const tags = (data.tags || []).map(t => t.replace(/^#/, '')).join(',');
         const params = new URLSearchParams({
           url: data.url || '',
@@ -149,10 +152,11 @@
       icon: 'linkedin',
       color: '#0A66C2',
       getUrl: (data) => {
-        const params = new URLSearchParams({
-          url: data.url || ''
-        });
-        return `https://www.linkedin.com/sharing/share-offsite/?${params.toString()}`;
+        let text = data.title || '';
+        if (data.description) text += `\n\n${data.description}`;
+        if (data.url) text += `\n\n${data.url}`;
+        if (data.tags && data.tags.length > 0) text += `\n\n${data.tags.join(' ')}`;
+        return `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`;
       }
     },
 
@@ -161,9 +165,11 @@
       icon: 'facebook',
       color: '#1877F2',
       getUrl: (data) => {
+        let quote = data.title ? `${data.title}` : '';
+        if (data.description) quote += `\n\n${data.description}`;
         const params = new URLSearchParams({
           u: data.url || '',
-          quote: data.title || ''
+          quote: quote
         });
         return `https://www.facebook.com/sharer/sharer.php?${params.toString()}`;
       }
@@ -174,7 +180,10 @@
       icon: 'whatsapp',
       color: '#25D366',
       getUrl: (data) => {
-        const message = `*${data.title}*\n${data.description ? data.description + '\n\n' : ''}${data.url}`;
+        let message = `*${data.title}*`;
+        if (data.description) message += `\n\n${data.description}`;
+        if (data.url) message += `\n\n🔗 ${data.url}`;
+        if (data.tags && data.tags.length > 0) message += `\n\n${data.tags.join(' ')}`;
         return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
       }
     },
@@ -184,9 +193,12 @@
       icon: 'telegram',
       color: '#24A1DE',
       getUrl: (data) => {
+        let text = data.title || '';
+        if (data.description) text += `\n\n${data.description}`;
+        if (data.tags && data.tags.length > 0) text += `\n\n${data.tags.join(' ')}`;
         const params = new URLSearchParams({
           url: data.url || '',
-          text: `${data.title || ''}\n${data.description || ''}`
+          text: text
         });
         return `https://t.me/share/url?${params.toString()}`;
       }
@@ -210,7 +222,10 @@
       icon: 'threads',
       color: '#000000',
       getUrl: (data) => {
-        const text = `${data.title || ''}\n\n${data.description || ''}\n\n${data.url || ''}`;
+        let text = data.title || '';
+        if (data.description) text += `\n\n${data.description}`;
+        if (data.url) text += `\n\n${data.url}`;
+        if (data.tags && data.tags.length > 0) text += `\n\n${data.tags.join(' ')}`;
         return `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`;
       }
     },

@@ -32,7 +32,7 @@ console.log('🧪 Running SocialShare Extension Tests...\n');
 
   // Test LinkedIn
   const linkedInUrl = SocialShare.PLATFORMS.linkedin.getUrl(mockData);
-  assert.ok(linkedInUrl.includes('linkedin.com/sharing/share-offsite'));
+  assert.ok(linkedInUrl.includes('linkedin.com/feed/?shareActive=true'));
   assert.ok(linkedInUrl.includes(encodeURIComponent(mockData.url)));
   console.log('✓ LinkedIn Share URL valid');
 
