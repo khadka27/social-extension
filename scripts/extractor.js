@@ -151,48 +151,114 @@
     // Add primary images first
     primaryImages.forEach(img => {
       if (img && typeof img === 'string' && img.startsWith('http')) {
-        imagesSet.add(img);
+        imagesSet.add(cleanMediumImageUrl(img));
       }
     });
 
-    // 1. Check meta image tags
+    // 1. Check all meta and link image tags
     const metaSelectors = [
       'meta[property="og:image"]',
       'meta[property="og:image:secure_url"]',
+      'meta[name="og:image"]',
+      'meta[property="twitter:image"]',
       'meta[name="twitter:image"]',
       'meta[name="twitter:image:src"]',
+      'meta[property="twitter:image:src"]',
       'meta[name="thumbnail"]',
-      'link[rel="image_src"]'
+      'meta[itemprop="image"]',
+      'link[rel="image_src"]',
+      'link[rel="apple-touch-icon-precomposed"]'
     ];
 
     metaSelectors.forEach(sel => {
       doc.querySelectorAll(sel).forEach(el => {
-        const src = el.getAttribute('content') || el.getAttribute('href');
+        const src = el.getAttribute('content') || el.getAttribute('href') || el.getAttribute('value');
         if (src) {
           const abs = resolveUrl(src, baseUrl);
-          if (isValidImageUrl(abs)) imagesSet.add(abs);
+          if (isValidImageUrl(abs)) imagesSet.add(cleanMediumImageUrl(abs));
         }
       });
     });
 
-    // 2. Scan in-page <img> elements
-    const imgElements = doc.querySelectorAll('article img, main img, .post img, .content img, img');
+    // 2. Scan picture sources, figure images, and in-page images
+    const sourceElements = doc.querySelectorAll('picture source[srcset], source[srcset]');
+    sourceElements.forEach(source => {
+      const srcset = source.getAttribute('srcset');
+      if (srcset) {
+        const bestSrc = extractHighestResFromSrcset(srcset);
+        if (bestSrc) {
+          const abs = resolveUrl(bestSrc, baseUrl);
+          if (isValidImageUrl(abs) && !isExcludedImage(abs)) {
+            imagesSet.add(cleanMediumImageUrl(abs));
+          }
+        }
+      }
+    });
+
+    // 3. Scan in-page <img> elements
+    const imgElements = doc.querySelectorAll('article figure img, article img, main img, figure img, .post img, .content img, img');
     imgElements.forEach(img => {
-      const src = img.getAttribute('src') || 
-                  img.getAttribute('data-src') || 
-                  img.getAttribute('data-original') ||
-                  img.getAttribute('srcset')?.split(',')[0]?.trim()?.split(' ')[0];
+      let src = img.getAttribute('data-src') ||
+                img.getAttribute('data-original') ||
+                img.getAttribute('data-zoom-image') ||
+                img.getAttribute('data-highres') ||
+                img.getAttribute('src');
+
+      const srcset = img.getAttribute('srcset') || img.getAttribute('data-srcset');
+      if (srcset) {
+        const bestFromSrcset = extractHighestResFromSrcset(srcset);
+        if (bestFromSrcset) src = bestFromSrcset;
+      }
 
       if (src) {
         const abs = resolveUrl(src, baseUrl);
-        // Exclude common tracking pixels, icons, and avatars
         if (isValidImageUrl(abs) && !isExcludedImage(abs, img)) {
-          imagesSet.add(abs);
+          imagesSet.add(cleanMediumImageUrl(abs));
+        }
+      }
+    });
+
+    // 4. Scan noscript tags (often contains real <img> on Medium & WordPress)
+    const noscripts = doc.querySelectorAll('noscript');
+    noscripts.forEach(ns => {
+      const match = ns.textContent.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (match && match[1]) {
+        const abs = resolveUrl(match[1], baseUrl);
+        if (isValidImageUrl(abs) && !isExcludedImage(abs)) {
+          imagesSet.add(cleanMediumImageUrl(abs));
         }
       }
     });
 
     return Array.from(imagesSet);
+  }
+
+  /**
+   * Cleans Medium image URLs to request high-resolution 1200px versions
+   * @param {string} url
+   * @returns {string}
+   */
+  function cleanMediumImageUrl(url) {
+    if (!url) return '';
+    // Upgrade low-res Miro Medium fit/fill to fit:1200
+    if (url.includes('miro.medium.com')) {
+      return url.replace(/resize:(?:fit|fill):\d+(?::\d+)?/g, 'resize:fit:1200');
+    }
+    return url;
+  }
+
+  /**
+   * Extracts highest resolution URL from srcset string
+   * @param {string} srcset
+   * @returns {string|null}
+   */
+  function extractHighestResFromSrcset(srcset) {
+    if (!srcset) return null;
+    const parts = srcset.split(',').map(s => s.trim()).filter(Boolean);
+    if (!parts.length) return null;
+    // Take the last item in srcset (which is typically highest resolution)
+    const lastPart = parts[parts.length - 1];
+    return lastPart.split(' ')[0] || null;
   }
 
   /**
@@ -216,15 +282,16 @@
   function isExcludedImage(url, img) {
     const lower = url.toLowerCase();
     const exclusions = [
-      'avatar', 'favicon', 'icon', 'emoji', 'pixel', 'badge',
-      'logo-small', '1x1', 'spinner', 'loader', 'ad-', 'advertisement'
+      'favicon', 'icon', 'emoji', 'pixel', 'badge',
+      'logo-small', '1x1', 'spinner', 'loader', 'ad-', 'advertisement', 'tracking'
     ];
     if (exclusions.some(exc => lower.includes(exc))) return true;
 
     if (img) {
       const width = parseInt(img.getAttribute('width') || '0', 10);
       const height = parseInt(img.getAttribute('height') || '0', 10);
-      if ((width > 0 && width < 100) || (height > 0 && height < 100)) {
+      // Only exclude if explicitly set to tiny dimensions (< 30px)
+      if ((width > 0 && width < 30) || (height > 0 && height < 30)) {
         return true;
       }
     }

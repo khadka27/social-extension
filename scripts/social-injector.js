@@ -479,15 +479,25 @@
         });
       }
 
-      composer.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+      // Comprehensive event dispatching for Draft.js, ProseMirror & Quill (LinkedIn, FB, Threads)
+      try {
+        composer.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: text }));
+      } catch (ie) {
+        composer.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+      }
       composer.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
-      composer.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: ' ' }));
+      composer.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter' }));
+      composer.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: ' ', code: 'Space' }));
     } catch (e) {
       composer.innerText = text;
       composer.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    showAutoFillBadge(platform);
+    if (platform === 'linkedin') {
+      showAutoFillBadge(platform, 'Auto-filled LinkedIn Post! (Tip: Press Ctrl+V to attach card/image)');
+    } else {
+      showAutoFillBadge(platform);
+    }
   }
 
   /**
