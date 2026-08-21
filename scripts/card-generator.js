@@ -335,6 +335,100 @@
     }
   }
 
+  /**
+   * Draws a YouTube Community Post Card
+   */
+  function drawYouTubeCommunityCard(ctx, width, height, options) {
+    const { title, text, footer, hook, siteName } = options;
+
+    // Dark sleek YouTube background with red ambient glow
+    ctx.fillStyle = '#0A0A0A';
+    ctx.fillRect(0, 0, width, height);
+
+    drawGlowOrb(ctx, width * 0.9, height * 0.15, 240, 'rgba(255, 0, 0, 0.22)');
+    drawGlowOrb(ctx, width * 0.15, height * 0.85, 220, 'rgba(180, 0, 0, 0.15)');
+
+    const pad = 36;
+    const cardW = width - pad * 2;
+    const cardH = height - pad * 2;
+
+    // Main Card Surface
+    ctx.save();
+    ctx.fillStyle = '#141414';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 2;
+    roundedRect(ctx, pad, pad, cardW, cardH, 20);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // Top YouTube Red Badge
+    const badgeW = 210;
+    const badgeH = 38;
+    ctx.fillStyle = '#FF0000';
+    roundedRect(ctx, pad + 24, pad + 24, badgeW, badgeH, 19);
+    ctx.fill();
+
+    // Play Triangle Icon inside badge
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.moveTo(pad + 40, pad + 35);
+    ctx.lineTo(pad + 52, pad + 43);
+    ctx.lineTo(pad + 40, pad + 51);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 13px "Outfit", "Inter", sans-serif';
+    ctx.fillText('YOUTUBE COMMUNITY', pad + 60, pad + 48);
+
+    // Site / Author tag on right
+    if (siteName) {
+      ctx.fillStyle = '#AAAAAA';
+      ctx.font = '600 13px "Outfit", "Inter", sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(siteName.toUpperCase(), pad + cardW - 24, pad + 48);
+      ctx.textAlign = 'start';
+    }
+
+    // Top Hook / Question
+    let curY = pad + 100;
+    if (hook) {
+      ctx.fillStyle = '#FF4D4D';
+      ctx.font = 'bold 20px "Outfit", "Inter", sans-serif';
+      curY = wrapText(ctx, hook, pad + 24, curY, cardW - 48, 28, 2) + 12;
+    }
+
+    // Title / Main Prompt
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 34px "Outfit", "Inter", sans-serif';
+    curY = wrapText(ctx, title, pad + 24, curY, cardW - 48, 44, 4) + 16;
+
+    // Body excerpt
+    if (text) {
+      ctx.fillStyle = '#CCCCCC';
+      ctx.font = '18px "Inter", sans-serif';
+      curY = wrapText(ctx, text, pad + 24, curY, cardW - 48, 28, 5) + 16;
+    }
+
+    // Interactive Poll/Action bar simulation
+    const barY = pad + cardH - 85;
+    ctx.fillStyle = '#222222';
+    roundedRect(ctx, pad + 24, barY, cardW - 48, 42, 8);
+    ctx.fill();
+
+    ctx.fillStyle = '#3EA6FF';
+    ctx.font = '600 14px "Outfit", "Inter", sans-serif';
+    ctx.fillText('🔗 Tap link in description / comment to read more', pad + 38, barY + 26);
+
+    // Bottom Engagement prompt
+    if (footer) {
+      ctx.fillStyle = '#888888';
+      ctx.font = '500 13px "Inter", sans-serif';
+      ctx.fillText(`💬 ${footer}`, pad + 24, pad + cardH - 18);
+    }
+  }
+
   // Helpers
   function roundedRect(ctx, x, y, width, height, radius) {
     ctx.beginPath();
@@ -378,6 +472,8 @@
       drawNotebookCard(ctx, width, height, options);
     } else if (theme === 'sticky') {
       drawStickyCard(ctx, width, height, options);
+    } else if (theme === 'youtube') {
+      drawYouTubeCommunityCard(ctx, width, height, options);
     } else {
       drawDarkGlassCard(ctx, width, height, options);
     }

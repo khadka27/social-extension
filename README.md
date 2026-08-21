@@ -13,8 +13,9 @@ A high-performance **Manifest V3 Browser Extension** that extracts titles, descr
   - **Right-Click Context Menu**: Right-click anywhere on an article -> *"⚡ Instant Auto-Post to Social Media"*.
   - **Auto-Post on Popup Open**: Toggle to automatically trigger the post sequence as soon as the extension is opened.
   - **Multi-Platform Batching**: Sequentially prepares posts for Twitter, LinkedIn, Threads, Reddit, Facebook, TikTok, YouTube, etc. with anti-duplicate variations.
-- 📔 **Visual Note Card Maker (Like Viral Twitter/TikTok Posts)**:
+- 📔 **Visual Note & Social Card Maker**:
   - Generate aesthetic downloadable/copyable image cards:
+    - 🔴 **YouTube Community Post Card** (YouTube red badge, dark theme with glow lighting, bold title, excerpt, and engagement CTA for YouTube Studio Community tab!).
     - 📔 **Spiral Notebook** (lined paper with realistic spiral rings and handwriting font, perfect for riddles, logic hooks, and quotes!).
     - 🟨 **Sticky Note** (yellow paper note with pin and bold typography).
     - 🌌 **Dark Glassmorphic Card** (glowing cyber gradient with glass cards).
