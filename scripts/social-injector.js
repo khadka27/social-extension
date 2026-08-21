@@ -146,45 +146,44 @@
       position: fixed;
       bottom: 24px;
       right: 24px;
-      width: 320px;
-      background: rgba(18, 18, 24, 0.96);
-      backdrop-filter: blur(12px);
-      border: 1px solid #FF0000;
-      border-radius: 14px;
+      width: 310px;
+      background: #12151C;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
       padding: 14px;
-      color: #FFFFFF;
+      color: #F1F5F9;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 16px rgba(255, 0, 0, 0.35);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.65), 0 0 1px rgba(255, 255, 255, 0.2);
       z-index: 9999999;
-      animation: popIn 0.3s ease-out;
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     `;
 
-    const titleSnippet = postData.title ? (postData.title.slice(0, 45) + (postData.title.length > 45 ? '...' : '')) : 'YouTube Video';
+    const titleSnippet = postData.title ? (postData.title.slice(0, 42) + (postData.title.length > 42 ? '...' : '')) : 'YouTube Video';
     const textToUse = postData.text || postData.title || '';
 
     helper.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-        <span style="font-weight: 700; font-size: 13px; color: #FF4D4D; display: flex; align-items: center; gap: 6px;">
-          🎥 YouTube Studio Assistant
+        <span style="font-weight: 600; font-size: 12.5px; color: #F1F5F9; display: flex; align-items: center; gap: 6px;">
+          🎥 YouTube Studio Helper
         </span>
-        <button id="close-yt-helper-btn" style="background: none; border: none; color: #888; cursor: pointer; font-size: 16px;">&times;</button>
+        <button id="close-yt-helper-btn" style="background: none; border: none; color: #64748B; cursor: pointer; font-size: 16px; padding: 0 4px;">&times;</button>
       </div>
-      <p style="font-size: 11.5px; color: #DDD; margin: 0 0 10px 0; line-height: 1.3;">
-        <strong>${escapeHtml(titleSnippet)}</strong>
+      <p style="font-size: 11px; color: #94A3B8; margin: 0 0 10px 0; line-height: 1.35;">
+        ${escapeHtml(titleSnippet)}
       </p>
       <div style="display: flex; flex-direction: column; gap: 6px;">
-        <button id="yt-select-file-btn" style="background: #FF0000; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <button id="yt-select-file-btn" style="background: #2563EB; color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 7px 12px; border-radius: 6px; font-weight: 600; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
           📂 Select Video From Downloads
         </button>
-        <button id="yt-autofill-btn" style="background: rgba(255, 0, 0, 0.18); border: 1px solid #FF0000; color: #FF6666; padding: 7px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
+        <button id="yt-autofill-btn" style="background: #1A1D27; border: 1px solid rgba(255, 255, 255, 0.1); color: #E2E8F0; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 11.5px; cursor: pointer;">
           ✨ Auto-Fill Title & Description
         </button>
-        <button id="yt-copy-btn" style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 7px 12px; border-radius: 8px; font-size: 11.5px; cursor: pointer;">
+        <button id="yt-copy-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #94A3B8; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;">
           📋 Copy Description & Tags
         </button>
       </div>
-      <p style="font-size: 10px; color: #AAA; margin: 8px 0 0 0; text-align: center;">
-        💡 Your generated video was downloaded — select it from Downloads!
+      <p style="font-size: 10px; color: #64748B; margin: 8px 0 0 0; text-align: center;">
+        💡 Select downloaded video or drag into box above!
       </p>
     `;
 
@@ -228,45 +227,44 @@
       position: fixed;
       bottom: 24px;
       right: 24px;
-      width: 320px;
-      background: rgba(18, 18, 24, 0.96);
-      backdrop-filter: blur(12px);
-      border: 1px solid #FE2C55;
-      border-radius: 14px;
+      width: 310px;
+      background: #12151C;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
       padding: 14px;
-      color: #FFFFFF;
+      color: #F1F5F9;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 16px rgba(254, 44, 85, 0.35);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.65), 0 0 1px rgba(255, 255, 255, 0.2);
       z-index: 9999999;
-      animation: popIn 0.3s ease-out;
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     `;
 
-    const titleSnippet = postData.title ? (postData.title.slice(0, 45) + (postData.title.length > 45 ? '...' : '')) : 'Article Post';
+    const titleSnippet = postData.title ? (postData.title.slice(0, 42) + (postData.title.length > 42 ? '...' : '')) : 'Article Post';
     const textToUse = postData.text || postData.title || '';
 
     helper.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-        <span style="font-weight: 700; font-size: 13px; color: #FE2C55; display: flex; align-items: center; gap: 6px;">
-          🎵 TikTok Post Helper
+        <span style="font-weight: 600; font-size: 12.5px; color: #F1F5F9; display: flex; align-items: center; gap: 6px;">
+          🎵 TikTok Studio Helper
         </span>
-        <button id="close-tiktok-helper-btn" style="background: none; border: none; color: #888; cursor: pointer; font-size: 16px;">&times;</button>
+        <button id="close-tiktok-helper-btn" style="background: none; border: none; color: #64748B; cursor: pointer; font-size: 16px; padding: 0 4px;">&times;</button>
       </div>
-      <p style="font-size: 11.5px; color: #DDD; margin: 0 0 10px 0; line-height: 1.3;">
-        <strong>${escapeHtml(titleSnippet)}</strong>
+      <p style="font-size: 11px; color: #94A3B8; margin: 0 0 10px 0; line-height: 1.35;">
+        ${escapeHtml(titleSnippet)}
       </p>
       <div style="display: flex; flex-direction: column; gap: 6px;">
-        <button id="tiktok-select-file-btn" style="background: #FE2C55; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <button id="tiktok-select-file-btn" style="background: #2563EB; color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 7px 12px; border-radius: 6px; font-weight: 600; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
           📂 Select Video From Downloads
         </button>
-        <button id="tiktok-autofill-btn" style="background: rgba(254, 44, 85, 0.18); border: 1px solid #FE2C55; color: #FF7D9E; padding: 7px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
+        <button id="tiktok-autofill-btn" style="background: #1A1D27; border: 1px solid rgba(255, 255, 255, 0.1); color: #E2E8F0; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 11.5px; cursor: pointer;">
           ✨ Auto-Fill Caption in Box
         </button>
-        <button id="tiktok-copy-btn" style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 7px 12px; border-radius: 8px; font-size: 11.5px; cursor: pointer;">
+        <button id="tiktok-copy-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #94A3B8; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;">
           📋 Copy Caption & Hashtags
         </button>
       </div>
-      <p style="font-size: 10px; color: #AAA; margin: 8px 0 0 0; text-align: center;">
-        💡 Click "Select Video" or drag the downloaded video file into the box above!
+      <p style="font-size: 10px; color: #64748B; margin: 8px 0 0 0; text-align: center;">
+        💡 Click "Select Video" or drag video file into box above!
       </p>
     `;
 
