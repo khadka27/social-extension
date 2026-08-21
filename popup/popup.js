@@ -740,14 +740,60 @@
 
     elements.postVideoTiktokBtn.addEventListener('click', () => {
       const caption = getFormattedPost();
-      copyToClipboard(caption, 'TikTok caption copied! Opening TikTok 🎵');
-      window.open('https://www.tiktok.com/upload', '_blank');
+      copyToClipboard(caption, '🎵 Video downloaded! Drag it into TikTok...');
+
+      // Auto-download generated video
+      if (state.generatedVideoUrl) {
+        const a = document.createElement('a');
+        a.href = state.generatedVideoUrl;
+        a.download = `tiktok-video-${state.siteName || 'story'}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      // Store pending post for TikTok auto-fill
+      chrome.storage.local.set({
+        pendingSocialPost: {
+          platform: 'tiktok',
+          text: caption,
+          title: state.title,
+          description: state.description,
+          url: state.url,
+          timestamp: Date.now()
+        }
+      });
+
+      window.open('https://www.tiktok.com/tiktokstudio/upload', '_blank');
     });
 
     elements.postVideoShortsBtn.addEventListener('click', () => {
       const caption = getFormattedPost();
-      copyToClipboard(caption, 'YouTube Shorts description copied! Opening YouTube 🎥');
-      window.open('https://studio.youtube.com/', '_blank');
+      copyToClipboard(caption, '🎥 Video downloaded! Drag it into YouTube...');
+
+      // Auto-download generated video
+      if (state.generatedVideoUrl) {
+        const a = document.createElement('a');
+        a.href = state.generatedVideoUrl;
+        a.download = `youtube-shorts-${state.siteName || 'story'}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      // Store pending post for YouTube auto-fill
+      chrome.storage.local.set({
+        pendingSocialPost: {
+          platform: 'youtube',
+          text: caption,
+          title: state.title,
+          description: state.description,
+          url: state.url,
+          timestamp: Date.now()
+        }
+      });
+
+      window.open('https://www.youtube.com/upload', '_blank');
     });
 
     // Note Card Inputs

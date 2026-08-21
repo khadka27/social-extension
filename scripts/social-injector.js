@@ -99,9 +99,10 @@
     const textToInject = postData.text || `${postData.title}\n\n${postData.description}`;
     if (!textToInject) return;
 
-    // Special YouTube Dashboard Trigger: Auto-trigger Upload Modal if on dashboard
+    // Special YouTube Dashboard Trigger & Assistant
     if (currentPlat === 'youtube') {
       handleYouTubeStudioAutoTrigger(postData);
+      renderYouTubeFloatingHelper(postData);
     }
 
     // Special TikTok Assistant Widget & Live Polling
@@ -112,6 +113,75 @@
     // Start polling to find the composer
     attemptComposerInjection(currentPlat, textToInject);
   });
+
+  /**
+   * Renders a floating helper assistant on YouTube Studio
+   */
+  function renderYouTubeFloatingHelper(postData) {
+    const existing = document.getElementById('socialshare-youtube-helper');
+    if (existing) existing.remove();
+
+    const helper = document.createElement('div');
+    helper.id = 'socialshare-youtube-helper';
+    helper.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 320px;
+      background: rgba(18, 18, 24, 0.96);
+      backdrop-filter: blur(12px);
+      border: 1px solid #FF0000;
+      border-radius: 14px;
+      padding: 14px;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 16px rgba(255, 0, 0, 0.35);
+      z-index: 9999999;
+      animation: popIn 0.3s ease-out;
+    `;
+
+    const titleSnippet = postData.title ? (postData.title.slice(0, 45) + (postData.title.length > 45 ? '...' : '')) : 'YouTube Video';
+    const textToUse = postData.text || postData.title || '';
+
+    helper.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-weight: 700; font-size: 13px; color: #FF4D4D; display: flex; align-items: center; gap: 6px;">
+          🎥 YouTube Studio Assistant
+        </span>
+        <button id="close-yt-helper-btn" style="background: none; border: none; color: #888; cursor: pointer; font-size: 16px;">&times;</button>
+      </div>
+      <p style="font-size: 11.5px; color: #DDD; margin: 0 0 10px 0; line-height: 1.3;">
+        <strong>${escapeHtml(titleSnippet)}</strong>
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <button id="yt-autofill-btn" style="background: #FF0000; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
+          ✨ Auto-Fill Title & Description
+        </button>
+        <button id="yt-copy-btn" style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 7px 12px; border-radius: 8px; font-size: 11.5px; cursor: pointer;">
+          📋 Copy Description & Tags
+        </button>
+      </div>
+      <p style="font-size: 10px; color: #888; margin: 8px 0 0 0; text-align: center;">
+        💡 Drag your downloaded video into the upload box, then click Auto-Fill!
+      </p>
+    `;
+
+    document.body.appendChild(helper);
+
+    helper.querySelector('#close-yt-helper-btn').addEventListener('click', () => helper.remove());
+
+    helper.querySelector('#yt-copy-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(textToUse);
+      helper.querySelector('#yt-copy-btn').textContent = '✅ Copied to Clipboard!';
+      setTimeout(() => {
+        helper.querySelector('#yt-copy-btn').textContent = '📋 Copy Description & Tags';
+      }, 2000);
+    });
+
+    helper.querySelector('#yt-autofill-btn').addEventListener('click', () => {
+      attemptComposerInjection('youtube', textToUse);
+    });
+  }
 
   /**
    * Renders a sleek floating helper assistant on TikTok Studio
