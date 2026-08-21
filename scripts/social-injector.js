@@ -1,7 +1,7 @@
 /**
  * SocialShare - Universal Social Media Auto-Fill Content Script
  * Automatically detects and injects Title, Description, and Hashtags directly into
- * post composers across Facebook, LinkedIn, 𝕏 (Twitter), Threads, Reddit, YouTube, and TikTok.
+ * post composers across Facebook, LinkedIn, 𝕏 (Twitter), Threads, Reddit, YouTube Studio, and TikTok.
  */
 
 (function () {
@@ -46,9 +46,13 @@
     ],
     youtube: [
       'ytcp-text-box[contenteditable="true"]',
-      '#textarea[contenteditable="true"]',
+      '#textbox[contenteditable="true"]',
       'div[contenteditable="true"][id="textbox"]',
-      'div[aria-label*="Create a post"]'
+      'div[aria-label*="Create a post"]',
+      'div[aria-label*="Tell viewers about your video"]',
+      'div[aria-label*="Add a title that describes your video"]',
+      'ytcp-social-suggestions-textbox[id="title-textarea"] #textbox',
+      'ytcp-social-suggestions-textbox[id="description-textarea"] #textbox'
     ]
   };
 
@@ -82,9 +86,46 @@
     const textToInject = postData.text || `${postData.title}\n\n${postData.description}`;
     if (!textToInject) return;
 
+    // Special YouTube Dashboard Trigger: Auto-trigger Upload Modal if on dashboard
+    if (currentPlat === 'youtube') {
+      handleYouTubeStudioAutoTrigger(postData);
+    }
+
     // Start polling to find the composer
     attemptComposerInjection(currentPlat, textToInject);
   });
+
+  /**
+   * Automatically triggers YouTube Studio upload dialog if user landed on dashboard
+   */
+  function handleYouTubeStudioAutoTrigger(postData) {
+    let triggered = false;
+    const triggerInterval = setInterval(() => {
+      if (triggered) {
+        clearInterval(triggerInterval);
+        return;
+      }
+
+      // Check for upload modal already open
+      const uploadModal = document.querySelector('ytcp-uploads-dialog');
+      if (uploadModal) {
+        triggered = true;
+        clearInterval(triggerInterval);
+        return;
+      }
+
+      // Look for dashboard upload buttons and click
+      const uploadBtn = document.querySelector('ytcp-button#upload-icon, button#upload-button, ytcp-button[aria-label*="Upload"], #create-icon, button[aria-label="Create"]');
+      if (uploadBtn) {
+        uploadBtn.click();
+        triggered = true;
+        clearInterval(triggerInterval);
+        showAutoFillBadge('youtube', 'Opening YouTube Upload Dialog...');
+      }
+    }, 600);
+
+    setTimeout(() => clearInterval(triggerInterval), 10000);
+  }
 
   /**
    * Polls DOM to find active composer element on the current platform
@@ -92,7 +133,7 @@
   function attemptComposerInjection(platform, text) {
     const selectors = PLATFORM_SELECTORS[platform] || [];
     let attempts = 0;
-    const maxAttempts = 35; // Try for up to 17 seconds
+    const maxAttempts = 40; // Try for up to 20 seconds
 
     const interval = setInterval(() => {
       attempts++;
@@ -165,13 +206,17 @@
   /**
    * Displays a floating badge notifying the user that text was auto-filled
    */
-  function showAutoFillBadge(platform) {
+  function showAutoFillBadge(platform, customMessage = null) {
+    const existing = document.getElementById('socialshare-toast-badge');
+    if (existing) existing.remove();
+
     const badge = document.createElement('div');
+    badge.id = 'socialshare-toast-badge';
     badge.style.cssText = `
       position: fixed;
       top: 18px;
       right: 18px;
-      background: rgba(15, 23, 42, 0.95);
+      background: rgba(15, 23, 42, 0.96);
       border: 1px solid #6366F1;
       color: #FFFFFF;
       padding: 9px 16px;
@@ -187,7 +232,7 @@
       animation: fadeInSlide 0.3s ease-out;
       pointer-events: none;
     `;
-    badge.innerHTML = `✨ SocialShare: Auto-filled Title & Description!`;
+    badge.innerHTML = customMessage ? `✨ SocialShare: ${customMessage}` : `✨ SocialShare: Auto-filled Title & Description!`;
     document.body.appendChild(badge);
 
     setTimeout(() => {

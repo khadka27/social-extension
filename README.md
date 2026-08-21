@@ -8,6 +8,9 @@ A high-performance **Manifest V3 Browser Extension** that extracts titles, descr
 
 - ⚡ **Instant Active Tab Extraction**: Automatically pulls the title, description, high-resolution preview images, author, site name, and hashtags from the open blog post.
 - 🌐 **External URL Scraper**: Paste any blog or news article link to fetch its metadata on the fly without navigating away.
+- 🤖 **Universal Social Media Auto-Fill (Facebook, LinkedIn, 𝕏/Twitter, Threads, Reddit, YouTube, TikTok)**:
+  - Automatically detects the composer/text box when opening Facebook, LinkedIn, Twitter, Threads, Reddit, etc., and **automatically types the Title, Description, and Hashtags** directly into the post text area!
+  - Fixes the blank text box issue on Facebook and other platforms — no manual copy-pasting required!
 - 🤖 **Hands-Free Background Auto-Post**:
   - **Global Keyboard Shortcut**: Press <kbd>Alt + Shift + S</kbd> on any blog post to immediately auto-extract and auto-post to all selected channels in the background!
   - **Right-Click Context Menu**: Right-click anywhere on an article -> *"⚡ Instant Auto-Post to Social Media"*.

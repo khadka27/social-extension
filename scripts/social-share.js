@@ -287,7 +287,7 @@
       icon: 'youtube',
       color: '#FF0000',
       getUrl: (data) => {
-        return 'https://studio.youtube.com/';
+        return 'https://www.youtube.com/upload';
       },
       getCaption: (data) => {
         const parts = [];

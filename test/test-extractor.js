@@ -77,11 +77,11 @@ console.log('🧪 Running SocialShare Extension Tests...\n');
 
   // Test YouTube
   const ytUrl = SocialShare.PLATFORMS.youtube.getUrl(mockData);
-  assert.strictEqual(ytUrl, 'https://studio.youtube.com/');
+  assert.strictEqual(ytUrl, 'https://www.youtube.com/upload');
   const ytCaption = SocialShare.PLATFORMS.youtube.getCaption(mockData);
   assert.ok(ytCaption.includes('The Future of Web Extensions in 2026'));
   assert.ok(ytCaption.includes('#community'));
-  console.log('✓ YouTube Community Post Generator valid');
+  console.log('✓ YouTube Upload & Community Post Generator valid');
 }
 
 // 3. Test Templates
