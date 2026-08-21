@@ -209,9 +209,10 @@
       icon: 'reddit',
       color: '#FF4500',
       getUrl: (data) => {
+        const titleText = data.description ? `${data.title} — ${data.description}`.slice(0, 295) : (data.title || '');
         const params = new URLSearchParams({
           url: data.url || '',
-          title: data.title || ''
+          title: titleText
         });
         return `https://reddit.com/submit?${params.toString()}`;
       }
@@ -235,9 +236,12 @@
       icon: 'pinterest',
       color: '#E60023',
       getUrl: (data) => {
+        let desc = data.title || '';
+        if (data.description) desc += ` — ${data.description}`;
+        if (data.tags && data.tags.length > 0) desc += ` ${data.tags.join(' ')}`;
         const params = new URLSearchParams({
           url: data.url || '',
-          description: `${data.title || ''} - ${data.description || ''}`
+          description: desc
         });
         if (data.image) {
           params.set('media', data.image);
@@ -251,8 +255,11 @@
       icon: 'bluesky',
       color: '#0085FF',
       getUrl: (data) => {
-        const text = `${data.title || ''}\n\n${data.url || ''}`;
-        return `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`;
+        let text = data.title || '';
+        if (data.description) text += `\n\n${data.description}`;
+        if (data.url) text += `\n\n${data.url}`;
+        if (data.tags && data.tags.length > 0) text += `\n\n${data.tags.join(' ')}`;
+        return `https://bsky.app/intent/compose?text=${encodeURIComponent(text.slice(0, 300))}`;
       }
     },
 
