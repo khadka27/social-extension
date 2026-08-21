@@ -13,9 +13,9 @@
   const TEMPLATES = {
     standard: (data) => {
       const parts = [];
-      if (data.title) parts.push(`📖 ${data.title}`);
+      if (data.title) parts.push(data.title);
       if (data.description) parts.push(`\n${data.description}`);
-      if (data.url) parts.push(`\n🔗 ${data.url}`);
+      if (data.url) parts.push(`\n${data.url}`);
       if (data.hashtags && data.hashtags.length > 0) {
         parts.push(`\n${data.hashtags.join(' ')}`);
       }
@@ -24,10 +24,10 @@
 
     casual: (data) => {
       const parts = [];
-      parts.push(`Just found this great read! 👀👇`);
+      parts.push(`Great read:`);
       if (data.title) parts.push(`"${data.title}"`);
       if (data.description) parts.push(`\n${data.description}`);
-      if (data.url) parts.push(`\nCheck it out here 👉 ${data.url}`);
+      if (data.url) parts.push(`\nLink: ${data.url}`);
       if (data.hashtags && data.hashtags.length > 0) {
         parts.push(`\n${data.hashtags.join(' ')}`);
       }
@@ -36,7 +36,7 @@
 
     professional: (data) => {
       const parts = [];
-      if (data.title) parts.push(`💡 Key Insights: ${data.title}`);
+      if (data.title) parts.push(`Key Insights: ${data.title}`);
       if (data.author) parts.push(`By ${data.author}`);
       if (data.description) parts.push(`\nSummary:\n${data.description}`);
       if (data.url) parts.push(`\nRead full article: ${data.url}`);
@@ -53,10 +53,10 @@
 
     hook: (data) => {
       const parts = [];
-      parts.push(`🔥 You won't want to miss this:`);
-      if (data.title) parts.push(`\n📌 ${data.title}`);
+      parts.push(`Must-read highlights:`);
+      if (data.title) parts.push(`\n${data.title}`);
       if (data.description) parts.push(`\n"${data.description}"`);
-      if (data.url) parts.push(`\nDive in here 🚀 ${data.url}`);
+      if (data.url) parts.push(`\nFull breakdown: ${data.url}`);
       if (data.hashtags && data.hashtags.length > 0) {
         parts.push(`\n${data.hashtags.join(' ')}`);
       }
@@ -65,10 +65,10 @@
 
     riddle: (data) => {
       const parts = [];
-      parts.push(`No hints\nNo clue\nJust pure logic...!\n\nWhat's your answer? 👇`);
-      if (data.title) parts.push(`\n📌 ${data.title}`);
+      parts.push(`No hints. No clue. Just pure logic...\n\nWhat is your answer?`);
+      if (data.title) parts.push(`\n${data.title}`);
       if (data.description) parts.push(`\n"${data.description}"`);
-      if (data.url) parts.push(`\n🔗 ${data.url}`);
+      if (data.url) parts.push(`\n${data.url}`);
       if (data.hashtags && data.hashtags.length > 0) {
         parts.push(`\n${data.hashtags.join(' ')}`);
       }
@@ -77,10 +77,10 @@
 
     curiosity: (data) => {
       const parts = [];
-      parts.push(`99% of people get this wrong! 🤔👇`);
+      parts.push(`Key question to consider:`);
       if (data.title) parts.push(`\n"${data.title}"`);
       if (data.description) parts.push(`\n${data.description}`);
-      if (data.url) parts.push(`\nCheck it out 👉 ${data.url}`);
+      if (data.url) parts.push(`\nExplore: ${data.url}`);
       if (data.hashtags && data.hashtags.length > 0) {
         parts.push(`\n${data.hashtags.join(' ')}`);
       }
@@ -103,24 +103,21 @@
   }
 
   /**
-   * Generates a unique variation of post text to bypass Twitter's duplicate post filter
+   * Generates a unique variation of post text to bypass duplicate post filters
    */
   const VARIATION_HOOKS = [
-    'Thoughts on this? 👀👇',
-    'Interesting read today 📖✨',
-    'Just came across this 💡',
-    'What are your thoughts on this? 🤔',
-    'Check this out: 🔥',
-    'Worth checking out 🚀',
-    'Breaking it down 👇'
+    'Thoughts on this?',
+    'Interesting analysis:',
+    'Key takeaway today:',
+    'Perspective on this topic:',
+    'Explore this breakdown:',
+    'Detailed overview:'
   ];
-
-  const EMOJIS = ['⚡', '💡', '📌', '🔍', '🔥', '👀', '✨', '🚀'];
 
   function makeUnique(title, description) {
     const randomHook = VARIATION_HOOKS[Math.floor(Math.random() * VARIATION_HOOKS.length)];
-    const randomEmoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-    return `${randomHook}\n\n${randomEmoji} ${title}`;
+    const randomNum = Math.floor(Math.random() * 900) + 100;
+    return `${randomHook} [Ref ${randomNum}]\n\n${title}`;
   }
 
   /**
@@ -182,7 +179,7 @@
       getUrl: (data) => {
         let message = `*${data.title}*`;
         if (data.description) message += `\n\n${data.description}`;
-        if (data.url) message += `\n\n🔗 ${data.url}`;
+        if (data.url) message += `\n\nLink: ${data.url}`;
         if (data.tags && data.tags.length > 0) message += `\n\n${data.tags.join(' ')}`;
         return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
       }
@@ -268,7 +265,7 @@
       icon: 'tiktok',
       color: '#FE2C55',
       getUrl: (data) => {
-        return 'https://www.tiktok.com/upload';
+        return 'https://www.tiktok.com/tiktokstudio/upload';
       },
       getCaption: (data) => {
         const parts = [];
@@ -291,9 +288,9 @@
       },
       getCaption: (data) => {
         const parts = [];
-        if (data.title) parts.push(`📢 ${data.title}`);
+        if (data.title) parts.push(data.title);
         if (data.description) parts.push(`\n${data.description}`);
-        if (data.url) parts.push(`\n🔗 Full Link: ${data.url}`);
+        if (data.url) parts.push(`\nFull Link: ${data.url}`);
         const tags = (data.tags || []).map(t => (t.startsWith('#') ? t : `#${t}`));
         if (!tags.some(t => t.toLowerCase() === '#community')) tags.push('#community');
         if (tags.length > 0) parts.push(`\n${tags.join(' ')}`);
@@ -335,24 +332,38 @@
   function formatAsHtml(data) {
     let html = `<div class="social-share-card">\n`;
     if (data.image) {
-      html += `  <img src="${data.image}" alt="${data.title}" style="max-width:100%; border-radius: 8px;" />\n`;
+      html += `  <img src="${data.image}" alt="${escapeHtml(data.title)}" />\n`;
     }
-    html += `  <h3><a href="${data.url}" target="_blank" rel="noopener noreferrer">${data.title}</a></h3>\n`;
+    html += `  <h3><a href="${data.url}" target="_blank" rel="noopener">${escapeHtml(data.title)}</a></h3>\n`;
     if (data.description) {
-      html += `  <p>${data.description}</p>\n`;
+      html += `  <p>${escapeHtml(data.description)}</p>\n`;
+    }
+    if (data.tags && data.tags.length > 0) {
+      const tagsStr = data.tags.map(t => `<span>#${escapeHtml(t.replace(/^#/, ''))}</span>`).join(' ');
+      html += `  <div class="tags">${tagsStr}</div>\n`;
     }
     html += `</div>`;
     return html;
   }
 
-  // Export to global scope
+  function escapeHtml(str) {
+    return (str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // Export
   const SocialShare = {
-    PLATFORMS,
     TEMPLATES,
+    PLATFORMS,
     formatHashtags,
     makeUnique,
     formatAsMarkdown,
-    formatAsHtml
+    formatAsHtml,
+    escapeHtml
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -360,4 +371,4 @@
   } else {
     global.SocialShare = SocialShare;
   }
-})(typeof window !== 'undefined' ? window : this);
+})(typeof globalThis !== 'undefined' ? globalThis : this);

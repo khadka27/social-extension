@@ -138,6 +138,7 @@
   async function init() {
     setupEventListeners();
     await loadAutoPostPreferences();
+    await loadCachedVideo();
     await checkPendingOrActiveTab();
   }
 
@@ -489,6 +490,14 @@
       state.generatedVideoBlob = result.blob;
       state.generatedVideoUrl = result.url;
 
+      // Persist generated video to IndexedDB so popup close never deletes it
+      await saveCachedVideo(result.blob, {
+        title: state.title,
+        url: state.url,
+        siteName: state.siteName,
+        ratio: state.videoRatio
+      });
+
       // Reveal Video Player
       elements.carouselVideoPlaceholder.classList.add('hidden');
       elements.carouselVideoPlayer.src = result.url;
@@ -500,13 +509,85 @@
       elements.videoPostTargets.classList.remove('hidden');
       elements.videoProgressOverlay.classList.add('hidden');
 
-      showToast('🎬 Carousel video generated successfully!');
+      showToast('🎬 Carousel video saved & ready!');
     } catch (err) {
       elements.videoProgressOverlay.classList.add('hidden');
       showToast(err.message || 'Could not generate video.');
     } finally {
       elements.generateVideoBtn.disabled = false;
       elements.generateVideoBtnText.textContent = 'Re-Generate Video';
+    }
+  }
+
+  // =========================================================
+  // IndexedDB Persistent Video Cache
+  // =========================================================
+
+  function openVideoDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('SocialShareVideoDB', 1);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('videos')) {
+          db.createObjectStore('videos', { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  async function saveCachedVideo(blob, metadata) {
+    try {
+      const db = await openVideoDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('videos', 'readwrite');
+        const store = tx.objectStore('videos');
+        store.put({
+          id: 'latest_carousel_video',
+          blob: blob,
+          metadata: metadata,
+          timestamp: Date.now()
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (e) {
+      console.warn('Could not save video to IndexedDB:', e);
+    }
+  }
+
+  async function loadCachedVideo() {
+    try {
+      const db = await openVideoDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction('videos', 'readonly');
+        const store = tx.objectStore('videos');
+        const req = store.get('latest_carousel_video');
+        req.onsuccess = () => {
+          const item = req.result;
+          if (item && item.blob) {
+            // Restore generated video state
+            state.generatedVideoBlob = item.blob;
+            state.generatedVideoUrl = URL.createObjectURL(item.blob);
+
+            // Populate video player
+            elements.carouselVideoPlaceholder.classList.add('hidden');
+            elements.carouselVideoPlayer.src = state.generatedVideoUrl;
+            elements.carouselVideoPlayer.classList.remove('hidden');
+
+            elements.downloadVideoBtn.classList.remove('hidden');
+            elements.videoPostTargets.classList.remove('hidden');
+            elements.generateVideoBtnText.textContent = 'Re-Generate Video';
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        };
+        req.onerror = () => resolve(false);
+      });
+    } catch (e) {
+      return false;
     }
   }
 

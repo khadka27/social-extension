@@ -45,14 +45,16 @@
       'textarea[placeholder*="Text"]'
     ],
     youtube: [
+      '#description-textarea #textbox[contenteditable="true"]',
+      '#title-textarea #textbox[contenteditable="true"]',
+      'ytcp-social-suggestions-textbox #textbox',
       'ytcp-text-box[contenteditable="true"]',
       '#textbox[contenteditable="true"]',
       'div[contenteditable="true"][id="textbox"]',
       'div[aria-label*="Create a post"]',
       'div[aria-label*="Tell viewers about your video"]',
       'div[aria-label*="Add a title that describes your video"]',
-      'ytcp-social-suggestions-textbox[id="title-textarea"] #textbox',
-      'ytcp-social-suggestions-textbox[id="description-textarea"] #textbox'
+      'div[id="contenteditable-textarea"]'
     ],
     tiktok: [
       'div.public-DraftEditor-content[contenteditable="true"]',
@@ -99,7 +101,7 @@
     const textToInject = postData.text || `${postData.title}\n\n${postData.description}`;
     if (!textToInject) return;
 
-    // Special YouTube Dashboard Trigger & Assistant
+    // Special YouTube Studio Trigger & Assistant
     if (currentPlat === 'youtube') {
       handleYouTubeStudioAutoTrigger(postData);
       renderYouTubeFloatingHelper(postData);
@@ -112,7 +114,7 @@
     }
 
     // Start polling to find the composer
-    attemptComposerInjection(currentPlat, textToInject);
+    attemptComposerInjection(currentPlat, textToInject, postData);
   });
 
   /**
@@ -126,8 +128,8 @@
       if (dropzone) {
         clearInterval(interval);
         dropzone.style.transition = 'all 0.3s ease';
-        dropzone.style.border = '2px dashed #FE2C55';
-        dropzone.style.backgroundColor = 'rgba(254, 44, 85, 0.04)';
+        dropzone.style.border = '2px dashed #3B82F6';
+        dropzone.style.backgroundColor = 'rgba(59, 130, 246, 0.04)';
       }
       if (checkCount > 20) clearInterval(interval);
     }, 500);
@@ -172,8 +174,8 @@
         ${escapeHtml(titleSnippet)}
       </p>
       <div style="display: flex; flex-direction: column; gap: 6px;">
-        <button id="yt-select-file-btn" style="background: #2563EB; color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 7px 12px; border-radius: 6px; font-weight: 600; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-          📂 Select Video From Downloads
+        <button id="yt-open-upload-btn" style="background: #2563EB; color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 7px 12px; border-radius: 6px; font-weight: 600; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          🚀 Open Upload Video Dialog
         </button>
         <button id="yt-autofill-btn" style="background: #1A1D27; border: 1px solid rgba(255, 255, 255, 0.1); color: #E2E8F0; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 11.5px; cursor: pointer;">
           ✨ Auto-Fill Title & Description
@@ -183,7 +185,7 @@
         </button>
       </div>
       <p style="font-size: 10px; color: #64748B; margin: 8px 0 0 0; text-align: center;">
-        💡 Select downloaded video or drag into box above!
+        💡 Click "Open Upload Video Dialog" or select from Downloads!
       </p>
     `;
 
@@ -191,14 +193,8 @@
 
     helper.querySelector('#close-yt-helper-btn').addEventListener('click', () => helper.remove());
 
-    helper.querySelector('#yt-select-file-btn').addEventListener('click', () => {
-      const fileInput = document.querySelector('input[type="file"]');
-      if (fileInput) {
-        fileInput.click();
-      } else {
-        const uploadBtn = document.querySelector('ytcp-button#upload-icon, button#upload-button, ytcp-button[aria-label*="Upload"], #create-icon, button[aria-label="Create"]');
-        if (uploadBtn) uploadBtn.click();
-      }
+    helper.querySelector('#yt-open-upload-btn').addEventListener('click', () => {
+      triggerYouTubeUploadDialog();
     });
 
     helper.querySelector('#yt-copy-btn').addEventListener('click', () => {
@@ -210,8 +206,44 @@
     });
 
     helper.querySelector('#yt-autofill-btn').addEventListener('click', () => {
-      attemptComposerInjection('youtube', textToUse);
+      attemptComposerInjection('youtube', textToUse, postData);
     });
+  }
+
+  /**
+   * Helper that clicks YouTube Studio's Create / Upload video elements
+   */
+  function triggerYouTubeUploadDialog() {
+    // 1. Direct file input click
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput && fileInput.offsetParent !== null) {
+      fileInput.click();
+      return;
+    }
+
+    // 2. Main central dashboard "Upload videos" button
+    const centerUploadBtn = document.querySelector('#upload-button button, ytcp-button#upload-button, [aria-label*="Upload videos"]');
+    if (centerUploadBtn) {
+      centerUploadBtn.click();
+      return;
+    }
+
+    // 3. Top-right Create button -> Upload videos
+    const createBtn = document.querySelector('#create-icon, button[aria-label="Create"], ytcp-button#create-icon');
+    if (createBtn) {
+      createBtn.click();
+      setTimeout(() => {
+        const uploadMenuItem = document.querySelector('tp-yt-paper-item, ytcp-text-menu-item, [test-id="upload-action-item"]');
+        if (uploadMenuItem) uploadMenuItem.click();
+      }, 300);
+      return;
+    }
+
+    // 4. Header upload icon
+    const headerUpload = document.querySelector('ytcp-icon-button#upload-icon, button#upload-icon');
+    if (headerUpload) {
+      headerUpload.click();
+    }
   }
 
   /**
@@ -292,7 +324,7 @@
     });
 
     helper.querySelector('#tiktok-autofill-btn').addEventListener('click', () => {
-      attemptComposerInjection('tiktok', textToUse);
+      attemptComposerInjection('tiktok', textToUse, postData);
     });
 
     // Listen for file drop / selection on TikTok to trigger auto-fill automatically
@@ -300,7 +332,7 @@
     if (fileInput) {
       fileInput.addEventListener('change', () => {
         setTimeout(() => {
-          attemptComposerInjection('tiktok', textToUse);
+          attemptComposerInjection('tiktok', textToUse, postData);
         }, 1500);
       });
     }
@@ -310,42 +342,52 @@
    * Automatically triggers YouTube Studio upload dialog if user landed on dashboard
    */
   function handleYouTubeStudioAutoTrigger(postData) {
-    let triggered = false;
+    let attempts = 0;
     const triggerInterval = setInterval(() => {
-      if (triggered) {
-        clearInterval(triggerInterval);
-        return;
-      }
+      attempts++;
 
+      // Check if upload modal already open
       const uploadModal = document.querySelector('ytcp-uploads-dialog');
       if (uploadModal) {
-        triggered = true;
         clearInterval(triggerInterval);
         return;
       }
 
-      const uploadBtn = document.querySelector('ytcp-button#upload-icon, button#upload-button, ytcp-button[aria-label*="Upload"], #create-icon, button[aria-label="Create"]');
-      if (uploadBtn) {
-        uploadBtn.click();
-        triggered = true;
-        clearInterval(triggerInterval);
-        showAutoFillBadge('youtube', 'Opening YouTube Upload Dialog...');
-      }
-    }, 600);
+      // Try triggering
+      triggerYouTubeUploadDialog();
 
-    setTimeout(() => clearInterval(triggerInterval), 10000);
+      if (attempts >= 15) {
+        clearInterval(triggerInterval);
+      }
+    }, 800);
   }
 
   /**
    * Polls DOM to find active composer element on the current platform
    */
-  function attemptComposerInjection(platform, text) {
+  function attemptComposerInjection(platform, text, postData) {
     const selectors = PLATFORM_SELECTORS[platform] || [];
     let attempts = 0;
-    const maxAttempts = 60; // Try for up to 30 seconds (allows time for photo/video drop)
+    const maxAttempts = 60;
 
     const interval = setInterval(() => {
       attempts++;
+
+      if (platform === 'youtube') {
+        // Special multi-field injection for YouTube Video details (Title + Description)
+        const titleEl = document.querySelector('#title-textarea #textbox[contenteditable="true"], ytcp-social-suggestions-textbox[id="title-textarea"] #textbox');
+        const descEl = document.querySelector('#description-textarea #textbox[contenteditable="true"], ytcp-social-suggestions-textbox[id="description-textarea"] #textbox');
+
+        if (titleEl && postData && postData.title) {
+          injectTextIntoComposer(titleEl, postData.title, platform);
+        }
+        if (descEl && text) {
+          injectTextIntoComposer(descEl, text, platform);
+          clearInterval(interval);
+          chrome.storage.local.remove(['pendingSocialPost', 'pendingFacebookPost']);
+          return;
+        }
+      }
 
       let composer = null;
       for (const sel of selectors) {
@@ -366,11 +408,11 @@
       } else if (attempts >= maxAttempts) {
         clearInterval(interval);
       }
-    }, 500);
+    }, 600);
   }
 
   /**
-   * Injects formatted text into contenteditable / textarea and triggers React/Vue/DraftJS events
+   * Injects formatted text into contenteditable / textarea and triggers React/Vue/DraftJS/Polymer events
    */
   function injectTextIntoComposer(composer, text, platform) {
     composer.focus();
@@ -422,20 +464,20 @@
       position: fixed;
       top: 18px;
       right: 18px;
-      background: rgba(15, 23, 42, 0.96);
-      border: 1px solid #6366F1;
-      color: #FFFFFF;
-      padding: 9px 16px;
-      border-radius: 24px;
+      background: #12151C;
+      border: 1px solid #3B82F6;
+      color: #F1F5F9;
+      padding: 8px 15px;
+      border-radius: 20px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 12px;
       font-weight: 600;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 12px rgba(99,102,241,0.5);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.65);
       z-index: 999999;
       display: flex;
       align-items: center;
       gap: 8px;
-      animation: fadeInSlide 0.3s ease-out;
+      animation: fadeInSlide 0.25s ease-out;
       pointer-events: none;
     `;
     badge.innerHTML = customMessage ? `✨ SocialShare: ${customMessage}` : `✨ SocialShare: Auto-filled Title & Description!`;
