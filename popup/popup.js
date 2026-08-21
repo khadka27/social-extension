@@ -582,7 +582,18 @@
         return;
       } else if (platformKey === 'facebook') {
         const fullPost = getFormattedPost();
-        copyToClipboard(fullPost, '📋 Title & Description copied! Press Ctrl+V in Facebook');
+        copyToClipboard(fullPost, '⚡ Autofilling Title & Description in Facebook...');
+        
+        // Save post text to storage for Facebook content script auto-fill
+        chrome.storage.local.set({
+          pendingFacebookPost: {
+            text: fullPost,
+            title: titleToUse,
+            description: state.description,
+            timestamp: Date.now()
+          }
+        });
+
         const width = 620;
         const height = 580;
         const left = (window.screen.width - width) / 2;

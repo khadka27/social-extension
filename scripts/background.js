@@ -132,6 +132,24 @@ async function triggerBackgroundAutoPost(tab) {
         });
 
         if (shareUrl) {
+          if (platKey === 'facebook') {
+            const templateFn = SocialShare.TEMPLATES.standard;
+            const fullPost = templateFn({
+              title: postTitle,
+              description: data.description,
+              url: data.url,
+              hashtags: SocialShare.formatHashtags(data.tags)
+            });
+            chrome.storage.local.set({
+              pendingFacebookPost: {
+                text: fullPost,
+                title: postTitle,
+                description: data.description,
+                timestamp: Date.now()
+              }
+            });
+          }
+
           setTimeout(() => {
             if (platKey === 'tiktok' || platKey === 'youtube') {
               chrome.tabs.create({ url: shareUrl, active: false });

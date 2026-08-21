@@ -39,6 +39,11 @@
       "matches": ["<all_urls>"],
       "js": ["scripts/extractor.js", "scripts/content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.facebook.com/*"],
+      "js": ["scripts/facebook-injector.js"],
+      "run_at": "document_idle"
     }
   ],
   "icons": {
