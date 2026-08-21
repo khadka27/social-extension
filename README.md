@@ -8,10 +8,11 @@ A high-performance **Manifest V3 Browser Extension** that extracts titles, descr
 
 - ⚡ **Instant Active Tab Extraction**: Automatically pulls the title, description, high-resolution preview images, author, site name, and hashtags from the open blog post.
 - 🌐 **External URL Scraper**: Paste any blog or news article link to fetch its metadata on the fly without navigating away.
-- ⚡ **Auto-Post to Multiple Platforms Simultaneously**:
-  - 1-Click **"Auto-Post to Selected Platforms"** triggers sequential sharing across your chosen channels (Twitter, LinkedIn, Threads, Reddit, Facebook, WhatsApp, etc.).
-  - Configurable platform selector drawer with automatic preference saving.
-  - Built-in **Anti-Duplicate Randomizer**: Generates unique wording variations per network so Twitter/X never throws duplicate post blocks.
+- 🤖 **Hands-Free Background Auto-Post**:
+  - **Global Keyboard Shortcut**: Press <kbd>Alt + Shift + S</kbd> on any blog post to immediately auto-extract and auto-post to all selected channels in the background!
+  - **Right-Click Context Menu**: Right-click anywhere on an article -> *"⚡ Instant Auto-Post to Social Media"*.
+  - **Auto-Post on Popup Open**: Toggle to automatically trigger the post sequence as soon as the extension is opened.
+  - **Multi-Platform Batching**: Sequentially prepares posts for Twitter, LinkedIn, Threads, Reddit, Facebook, TikTok, YouTube, etc. with anti-duplicate variations.
 - 📔 **Visual Note Card Maker (Like Viral Twitter/TikTok Posts)**:
   - Generate aesthetic downloadable/copyable image cards:
     - 📔 **Spiral Notebook** (lined paper with realistic spiral rings and handwriting font, perfect for riddles, logic hooks, and quotes!).

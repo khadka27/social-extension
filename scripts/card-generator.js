@@ -31,6 +31,13 @@
       textColor: '#FFFFFF',
       font: '"Outfit", "Inter", -apple-system, sans-serif'
     },
+    youtube: {
+      id: 'youtube',
+      name: '🔴 YouTube Community Post',
+      bg: '#0F0F0F',
+      textColor: '#FFFFFF',
+      font: '"Outfit", "Inter", -apple-system, sans-serif'
+    },
     minimal: {
       id: 'minimal',
       name: '📄 Clean Paper',

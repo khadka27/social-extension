@@ -94,6 +94,7 @@
     selectAllPlatformsBtn: document.getElementById('select-all-platforms-btn'),
     selectNonePlatformsBtn: document.getElementById('select-none-platforms-btn'),
     autoRandomizeCheck: document.getElementById('auto-randomize-check'),
+    autoPostOnOpenCheck: document.getElementById('auto-post-on-open-check'),
 
     // Copy & Social Buttons
     copyPostBtn: document.getElementById('copy-post-btn'),
@@ -120,7 +121,7 @@
    */
   async function loadAutoPostPreferences() {
     try {
-      const stored = await chrome.storage.local.get(['autoPostPlatforms', 'autoRandomize']);
+      const stored = await chrome.storage.local.get(['autoPostPlatforms', 'autoRandomize', 'autoPostOnOpen']);
       if (stored.autoPostPlatforms && Array.isArray(stored.autoPostPlatforms)) {
         elements.autoPlatChecks.forEach(chk => {
           const plat = chk.getAttribute('data-platform');
@@ -129,6 +130,9 @@
       }
       if (typeof stored.autoRandomize === 'boolean' && elements.autoRandomizeCheck) {
         elements.autoRandomizeCheck.checked = stored.autoRandomize;
+      }
+      if (typeof stored.autoPostOnOpen === 'boolean' && elements.autoPostOnOpenCheck) {
+        elements.autoPostOnOpenCheck.checked = stored.autoPostOnOpen;
       }
     } catch (e) {}
   }
@@ -142,9 +146,11 @@
         .filter(c => c.checked)
         .map(c => c.getAttribute('data-platform'));
       const autoRandomize = elements.autoRandomizeCheck ? elements.autoRandomizeCheck.checked : true;
+      const autoPostOnOpen = elements.autoPostOnOpenCheck ? elements.autoPostOnOpenCheck.checked : false;
       chrome.storage.local.set({
         autoPostPlatforms: selectedPlatforms,
-        autoRandomize: autoRandomize
+        autoRandomize: autoRandomize,
+        autoPostOnOpen: autoPostOnOpen
       });
     } catch (e) {}
   }
@@ -298,6 +304,13 @@
     renderNoteCard();
 
     showContent();
+
+    // Auto-Post on Open trigger if enabled
+    if (elements.autoPostOnOpenCheck && elements.autoPostOnOpenCheck.checked) {
+      setTimeout(() => {
+        executeAutoPost();
+      }, 500);
+    }
   }
 
   /**
@@ -618,6 +631,10 @@
 
     if (elements.autoRandomizeCheck) {
       elements.autoRandomizeCheck.addEventListener('change', saveAutoPostPreferences);
+    }
+
+    if (elements.autoPostOnOpenCheck) {
+      elements.autoPostOnOpenCheck.addEventListener('change', saveAutoPostPreferences);
     }
 
     // Input syncs
