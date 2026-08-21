@@ -41,8 +41,17 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["*://*.facebook.com/*"],
-      "js": ["scripts/facebook-injector.js"],
+      "matches": [
+        "*://*.facebook.com/*",
+        "*://*.linkedin.com/*",
+        "*://*.twitter.com/*",
+        "*://*.x.com/*",
+        "*://*.threads.net/*",
+        "*://*.reddit.com/*",
+        "*://*.youtube.com/*",
+        "*://*.tiktok.com/*"
+      ],
+      "js": ["scripts/social-injector.js"],
       "run_at": "document_idle"
     }
   ],

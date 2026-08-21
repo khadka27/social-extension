@@ -556,6 +556,25 @@
     });
 
     if (shareUrl) {
+      // Automatically store pending post for universal content script auto-fill
+      const fullPost = getFormattedPost();
+      chrome.storage.local.set({
+        pendingSocialPost: {
+          platform: platformKey,
+          text: fullPost,
+          title: titleToUse,
+          description: state.description,
+          url: state.url,
+          timestamp: Date.now()
+        },
+        pendingFacebookPost: {
+          text: fullPost,
+          title: titleToUse,
+          description: state.description,
+          timestamp: Date.now()
+        }
+      });
+
       if (platformKey === 'email') {
         window.location.href = shareUrl;
       } else if (platformKey === 'tiktok') {
@@ -564,7 +583,7 @@
           description: state.description,
           url: state.url,
           tags: SocialShare.formatHashtags(state.tags)
-        }) : getFormattedPost();
+        }) : fullPost;
         
         copyToClipboard(caption, 'TikTok caption copied! Opening TikTok 🎵');
         window.open(shareUrl, '_blank');
@@ -575,25 +594,13 @@
           description: state.description,
           url: state.url,
           tags: SocialShare.formatHashtags(state.tags)
-        }) : getFormattedPost();
+        }) : fullPost;
         
-        copyToClipboard(caption, 'YouTube post copied to clipboard! Opening YouTube 🎥');
+        copyToClipboard(caption, 'YouTube post copied! Opening YouTube 🎥');
         window.open(shareUrl, '_blank');
         return;
       } else if (platformKey === 'facebook') {
-        const fullPost = getFormattedPost();
         copyToClipboard(fullPost, '⚡ Autofilling Title & Description in Facebook...');
-        
-        // Save post text to storage for Facebook content script auto-fill
-        chrome.storage.local.set({
-          pendingFacebookPost: {
-            text: fullPost,
-            title: titleToUse,
-            description: state.description,
-            timestamp: Date.now()
-          }
-        });
-
         const width = 620;
         const height = 580;
         const left = (window.screen.width - width) / 2;
@@ -605,8 +612,7 @@
         );
         return;
       } else {
-        const fullPost = getFormattedPost();
-        copyToClipboard(fullPost, `Opening ${platform.name}... 📋 Text copied!`);
+        copyToClipboard(fullPost, `⚡ Opening ${platform.name} (Autofilling Title & Description)...`);
 
         const width = 600;
         const height = 540;
