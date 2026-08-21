@@ -1,7 +1,7 @@
 /**
  * SocialShare - Universal Social Media Auto-Fill Content Script
  * Automatically detects and injects Title, Description, and Hashtags directly into
- * post composers across Facebook, LinkedIn, 𝕏 (Twitter), Threads, Reddit, YouTube Studio, and TikTok.
+ * post composers across Facebook, LinkedIn, 𝕏 (Twitter), Threads, Reddit, YouTube Studio, and TikTok Studio.
  */
 
 (function () {
@@ -53,6 +53,18 @@
       'div[aria-label*="Add a title that describes your video"]',
       'ytcp-social-suggestions-textbox[id="title-textarea"] #textbox',
       'ytcp-social-suggestions-textbox[id="description-textarea"] #textbox'
+    ],
+    tiktok: [
+      'div.public-DraftEditor-content[contenteditable="true"]',
+      'div[contenteditable="true"][data-text="true"]',
+      'div[contenteditable="true"][class*="caption"]',
+      'div[contenteditable="true"][class*="editor"]',
+      'div[contenteditable="true"][aria-label*="Caption"]',
+      'div[contenteditable="true"][data-placeholder*="caption"]',
+      'div[contenteditable="true"]',
+      'textarea[placeholder*="caption"]',
+      'textarea[placeholder*="Describe your video"]',
+      'input[placeholder*="caption"]'
     ]
   };
 
@@ -65,6 +77,7 @@
     if (host.includes('threads.net')) return 'threads';
     if (host.includes('reddit.com')) return 'reddit';
     if (host.includes('youtube.com')) return 'youtube';
+    if (host.includes('tiktok.com')) return 'tiktok';
     return null;
   }
 
@@ -74,8 +87,8 @@
     if (!postData) return;
 
     const now = Date.now();
-    // Only process if created within the last 90 seconds
-    if (now - (postData.timestamp || 0) > 90000) {
+    // Only process if created within the last 120 seconds
+    if (now - (postData.timestamp || 0) > 120000) {
       chrome.storage.local.remove(['pendingSocialPost', 'pendingFacebookPost']);
       return;
     }
@@ -91,9 +104,83 @@
       handleYouTubeStudioAutoTrigger(postData);
     }
 
+    // Special TikTok Assistant Widget & Live Polling
+    if (currentPlat === 'tiktok') {
+      renderTikTokFloatingHelper(postData);
+    }
+
     // Start polling to find the composer
     attemptComposerInjection(currentPlat, textToInject);
   });
+
+  /**
+   * Renders a sleek floating helper assistant on TikTok Studio
+   */
+  function renderTikTokFloatingHelper(postData) {
+    const existing = document.getElementById('socialshare-tiktok-helper');
+    if (existing) existing.remove();
+
+    const helper = document.createElement('div');
+    helper.id = 'socialshare-tiktok-helper';
+    helper.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 320px;
+      background: rgba(18, 18, 24, 0.96);
+      backdrop-filter: blur(12px);
+      border: 1px solid #FE2C55;
+      border-radius: 14px;
+      padding: 14px;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 16px rgba(254, 44, 85, 0.35);
+      z-index: 9999999;
+      animation: popIn 0.3s ease-out;
+    `;
+
+    const titleSnippet = postData.title ? (postData.title.slice(0, 45) + (postData.title.length > 45 ? '...' : '')) : 'Article Post';
+    const textToUse = postData.text || postData.title || '';
+
+    helper.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-weight: 700; font-size: 13px; color: #FE2C55; display: flex; align-items: center; gap: 6px;">
+          🎵 TikTok Post Helper
+        </span>
+        <button id="close-tiktok-helper-btn" style="background: none; border: none; color: #888; cursor: pointer; font-size: 16px;">&times;</button>
+      </div>
+      <p style="font-size: 11.5px; color: #DDD; margin: 0 0 10px 0; line-height: 1.3;">
+        <strong>${escapeHtml(titleSnippet)}</strong>
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <button id="tiktok-autofill-btn" style="background: #FE2C55; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
+          ✨ Auto-Fill Caption in Box
+        </button>
+        <button id="tiktok-copy-btn" style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 7px 12px; border-radius: 8px; font-size: 11.5px; cursor: pointer;">
+          📋 Copy Caption & Hashtags
+        </button>
+      </div>
+      <p style="font-size: 10px; color: #888; margin: 8px 0 0 0; text-align: center;">
+        💡 Drag your photo/video into the box above, then click Auto-Fill!
+      </p>
+    `;
+
+    document.body.appendChild(helper);
+
+    helper.querySelector('#close-tiktok-helper-btn').addEventListener('click', () => helper.remove());
+
+    helper.querySelector('#tiktok-copy-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(textToUse);
+      helper.querySelector('#tiktok-copy-btn').textContent = '✅ Copied to Clipboard!';
+      setTimeout(() => {
+        helper.querySelector('#tiktok-copy-btn').textContent = '📋 Copy Caption & Hashtags';
+      }, 2000);
+    });
+
+    helper.querySelector('#tiktok-autofill-btn').addEventListener('click', () => {
+      attemptComposerInjection('tiktok', textToUse);
+    });
+  }
 
   /**
    * Automatically triggers YouTube Studio upload dialog if user landed on dashboard
@@ -106,7 +193,6 @@
         return;
       }
 
-      // Check for upload modal already open
       const uploadModal = document.querySelector('ytcp-uploads-dialog');
       if (uploadModal) {
         triggered = true;
@@ -114,7 +200,6 @@
         return;
       }
 
-      // Look for dashboard upload buttons and click
       const uploadBtn = document.querySelector('ytcp-button#upload-icon, button#upload-button, ytcp-button[aria-label*="Upload"], #create-icon, button[aria-label="Create"]');
       if (uploadBtn) {
         uploadBtn.click();
@@ -133,7 +218,7 @@
   function attemptComposerInjection(platform, text) {
     const selectors = PLATFORM_SELECTORS[platform] || [];
     let attempts = 0;
-    const maxAttempts = 40; // Try for up to 20 seconds
+    const maxAttempts = 60; // Try for up to 30 seconds (allows time for photo/video drop)
 
     const interval = setInterval(() => {
       attempts++;
@@ -153,7 +238,6 @@
       if (composer) {
         clearInterval(interval);
         injectTextIntoComposer(composer, text, platform);
-        // Clear pending storage once injected
         chrome.storage.local.remove(['pendingSocialPost', 'pendingFacebookPost']);
       } else if (attempts >= maxAttempts) {
         clearInterval(interval);
@@ -162,23 +246,22 @@
   }
 
   /**
-   * Injects formatted text into contenteditable / textarea and triggers React/Vue events
+   * Injects formatted text into contenteditable / textarea and triggers React/Vue/DraftJS events
    */
   function injectTextIntoComposer(composer, text, platform) {
     composer.focus();
 
-    // Avoid overwriting if user already typed something long
     if (composer.textContent && composer.textContent.trim().length > 15) {
       return;
     }
 
     try {
-      // 1. Try standard execCommand
+      // 1. Standard execCommand
       document.execCommand('selectAll', false, null);
       const success = document.execCommand('insertText', false, text);
 
       if (!success || !composer.textContent || composer.textContent.trim().length === 0) {
-        // 2. DOM construction fallback
+        // 2. DraftJS / Lexical construction fallback
         composer.innerHTML = '';
         const lines = text.split('\n');
         lines.forEach((line) => {
@@ -195,7 +278,6 @@
         composer.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
       }
     } catch (e) {
-      // Direct text fallback
       composer.innerText = text;
       composer.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -239,6 +321,15 @@
       badge.style.opacity = '0';
       badge.style.transition = 'opacity 0.4s ease';
       setTimeout(() => badge.remove(), 400);
-    }, 3200);
+    }, 3500);
+  }
+
+  function escapeHtml(str) {
+    return (str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 })();

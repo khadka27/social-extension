@@ -585,8 +585,20 @@
           tags: SocialShare.formatHashtags(state.tags)
         }) : fullPost;
         
-        copyToClipboard(caption, 'TikTok caption copied! Opening TikTok 🎵');
-        window.open(shareUrl, '_blank');
+        copyToClipboard(caption, '🎵 Opening TikTok Studio (Caption ready to auto-fill)...');
+
+        // Auto-download primary photo if available so user can immediately drop it into TikTok
+        if (state.image) {
+          const dlLink = document.createElement('a');
+          dlLink.href = state.image;
+          dlLink.download = 'tiktok-article-photo.jpg';
+          dlLink.target = '_blank';
+          document.body.appendChild(dlLink);
+          dlLink.click();
+          dlLink.remove();
+        }
+
+        window.open('https://www.tiktok.com/tiktokstudio/upload', '_blank');
         return;
       } else if (platformKey === 'youtube') {
         const caption = platform.getCaption ? platform.getCaption({
