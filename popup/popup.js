@@ -107,6 +107,7 @@
     generateVideoBtn: document.getElementById('generate-video-btn'),
     generateVideoBtnText: document.getElementById('generate-video-btn-text'),
     downloadVideoBtn: document.getElementById('download-video-btn'),
+    videoDragBadge: document.getElementById('video-drag-badge'),
     videoPostTargets: document.getElementById('video-post-targets'),
     postVideoTiktokBtn: document.getElementById('post-video-tiktok-btn'),
     postVideoShortsBtn: document.getElementById('post-video-shorts-btn'),
@@ -290,7 +291,7 @@
 
       if (response && response.success && response.data) {
         populateData(response.data);
-        showToast('Metadata extracted successfully! 🚀');
+        showToast('Metadata extracted successfully.');
       } else {
         showError((response && response.error) || 'Could not fetch external URL metadata.');
       }
@@ -318,9 +319,7 @@
     elements.siteBadge.textContent = state.siteName || (state.url ? new URL(state.url).hostname : 'Article');
 
     // Update Note Card text default
-    if (!elements.cardTextInput.value || elements.cardTextInput.value.trim() === '') {
-      elements.cardTextInput.value = state.description ? `${state.title}\n\n${state.description}` : state.title;
-    }
+    elements.cardTextInput.value = state.description || state.title || '';
     state.cardText = elements.cardTextInput.value;
 
     // Update Video badge
@@ -449,8 +448,8 @@
 
     CardGenerator.renderCard(elements.noteCardCanvas, {
       theme: state.cardTheme,
-      title: state.cardText || state.title || 'A girl got killed.',
-      text: '',
+      title: state.title || 'Article Highlight',
+      text: state.cardText || state.description || '',
       hook: state.cardHook,
       footer: state.cardFooter,
       siteName: state.siteName,
@@ -506,10 +505,11 @@
 
       // Reveal download and sharing targets
       elements.downloadVideoBtn.classList.remove('hidden');
+      if (elements.videoDragBadge) elements.videoDragBadge.classList.remove('hidden');
       elements.videoPostTargets.classList.remove('hidden');
       elements.videoProgressOverlay.classList.add('hidden');
 
-      showToast('🎬 Carousel video saved & ready!');
+      showToast('Carousel video saved & ready.');
     } catch (err) {
       elements.videoProgressOverlay.classList.add('hidden');
       showToast(err.message || 'Could not generate video.');
@@ -577,6 +577,7 @@
             elements.carouselVideoPlayer.classList.remove('hidden');
 
             elements.downloadVideoBtn.classList.remove('hidden');
+            if (elements.videoDragBadge) elements.videoDragBadge.classList.remove('hidden');
             elements.videoPostTargets.classList.remove('hidden');
             elements.generateVideoBtnText.textContent = 'Re-Generate Video';
             resolve(true);
@@ -666,7 +667,7 @@
           tags: SocialShare.formatHashtags(state.tags)
         }) : fullPost;
         
-        copyToClipboard(caption, '🎵 Opening TikTok Studio (Caption ready to auto-fill)...');
+        copyToClipboard(caption, 'Opening TikTok Studio (Caption ready to auto-fill)...');
 
         // Auto-download primary photo if available so user can immediately drop it into TikTok
         if (state.image) {
@@ -689,11 +690,11 @@
           tags: SocialShare.formatHashtags(state.tags)
         }) : fullPost;
         
-        copyToClipboard(caption, 'YouTube post copied! Opening YouTube 🎥');
+        copyToClipboard(caption, 'YouTube post copied! Opening YouTube...');
         window.open(shareUrl, '_blank');
         return;
       } else if (platformKey === 'facebook') {
-        copyToClipboard(fullPost, '⚡ Autofilling Title & Description in Facebook...');
+        copyToClipboard(fullPost, 'Autofilling Title & Description in Facebook...');
         const width = 620;
         const height = 580;
         const left = (window.screen.width - width) / 2;
@@ -705,7 +706,7 @@
         );
         return;
       } else {
-        copyToClipboard(fullPost, `⚡ Opening ${platform.name} (Autofilling Title & Description)...`);
+        copyToClipboard(fullPost, `Opening ${platform.name} (Autofilling Title & Description)...`);
 
         const width = 600;
         const height = 540;
@@ -730,13 +731,13 @@
       .map(c => c.getAttribute('data-platform'));
 
     if (selectedPlatforms.length === 0) {
-      showToast('⚠️ Please select at least one platform in Auto-Post settings.');
+      showToast('Please select at least one platform in Auto-Post settings.');
       elements.autopostSettingsDrawer.classList.remove('hidden');
       return;
     }
 
     const shouldRandomize = elements.autoRandomizeCheck ? elements.autoRandomizeCheck.checked : true;
-    showToast(`⚡ Auto-Posting across ${selectedPlatforms.length} platforms...`);
+    showToast(`Auto-Posting across ${selectedPlatforms.length} platforms...`);
 
     for (let i = 0; i < selectedPlatforms.length; i++) {
       const plat = selectedPlatforms[i];
@@ -815,13 +816,13 @@
         a.href = state.generatedVideoUrl;
         a.download = `carousel-${state.siteName || 'article'}-video.webm`;
         a.click();
-        showToast('Video downloaded! 📥');
+        showToast('Video downloaded successfully.');
       }
     });
 
     elements.postVideoTiktokBtn.addEventListener('click', () => {
       const caption = getFormattedPost();
-      copyToClipboard(caption, '🎵 Video downloaded! Drag it into TikTok...');
+      copyToClipboard(caption, 'Video downloaded. Drag it into TikTok...');
 
       // Auto-download generated video
       if (state.generatedVideoUrl) {
@@ -850,7 +851,7 @@
 
     elements.postVideoShortsBtn.addEventListener('click', () => {
       const caption = getFormattedPost();
-      copyToClipboard(caption, '🎥 Video downloaded! Drag it into YouTube...');
+      copyToClipboard(caption, 'Video downloaded. Drag it into YouTube...');
 
       // Auto-download generated video
       if (state.generatedVideoUrl) {
@@ -877,6 +878,30 @@
       window.open('https://www.youtube.com/upload', '_blank');
     });
 
+    // Draggable Video Event Listener for Native Drop to Webpages
+    if (elements.videoDragBadge) {
+      elements.videoDragBadge.addEventListener('dragstart', (e) => {
+        if (state.generatedVideoUrl) {
+          const fileName = `carousel-video-${state.siteName || 'story'}.webm`;
+          const downloadUrl = `video/webm:${fileName}:${state.generatedVideoUrl}`;
+          e.dataTransfer.setData('DownloadURL', downloadUrl);
+          e.dataTransfer.setData('text/plain', getFormattedPost());
+          e.dataTransfer.setData('text/uri-list', state.generatedVideoUrl);
+          e.dataTransfer.effectAllowed = 'copyMove';
+
+          chrome.storage.local.set({
+            pendingSocialPost: {
+              text: getFormattedPost(),
+              title: state.title,
+              description: state.description,
+              url: state.url,
+              timestamp: Date.now()
+            }
+          });
+        }
+      });
+    }
+
     // Note Card Inputs
     elements.cardHookInput.addEventListener('input', renderNoteCard);
     elements.cardTextInput.addEventListener('input', renderNoteCard);
@@ -897,7 +922,7 @@
     elements.downloadNoteCardBtn.addEventListener('click', () => {
       if (elements.noteCardCanvas && typeof CardGenerator !== 'undefined') {
         CardGenerator.downloadCanvasImage(elements.noteCardCanvas, 'social-note-card.png');
-        showToast('Note card image downloaded! 📥');
+        showToast('Note card image downloaded.');
       }
     });
 
@@ -906,7 +931,7 @@
       if (elements.noteCardCanvas && typeof CardGenerator !== 'undefined') {
         try {
           await CardGenerator.copyCanvasImage(elements.noteCardCanvas);
-          showToast('Note card image copied to clipboard! 📋');
+          showToast('Note card image copied to clipboard.');
         } catch (err) {
           showToast('Could not copy image directly. Click Download instead.');
         }
@@ -952,7 +977,7 @@
       updateCharCounts();
     });
 
-    // Make Unique Button (Randomize hook & emojis to prevent Twitter duplicate errors)
+    // Make Unique Button (Randomize hook to prevent duplicate errors)
     if (elements.makeUniqueBtn) {
       elements.makeUniqueBtn.addEventListener('click', () => {
         if (state.title && typeof SocialShare !== 'undefined') {
@@ -960,7 +985,7 @@
           elements.postTitle.value = uniqueTitle;
           state.title = uniqueTitle;
           updateCharCounts();
-          showToast('Fresh unique variation generated! 🎲✨');
+          showToast('Unique title variation generated.');
         }
       });
     }
@@ -977,7 +1002,7 @@
       if (state.url) {
         state.url = SocialExtractor.cleanUrl(state.url);
         elements.postUrl.value = state.url;
-        showToast('Tracking parameters stripped! ✨');
+        showToast('Tracking parameters stripped.');
       }
     });
 
@@ -1069,7 +1094,7 @@
     // Quick Copy Actions
     elements.copyPostBtn.addEventListener('click', () => {
       const postText = getFormattedPost();
-      copyToClipboard(postText, 'Full post copied to clipboard! 📋');
+      copyToClipboard(postText, 'Full post copied to clipboard.');
     });
 
     elements.copyMarkdownBtn.addEventListener('click', () => {

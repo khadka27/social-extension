@@ -1,6 +1,6 @@
 /**
  * SocialShare - Visual Post & Note Card Generator
- * Generates aesthetic, viral image cards (Spiral Notebook, Sticky Note, Dark Glass, Editorial)
+ * Generates aesthetic, viral image cards (Spiral Notebook, YouTube Community, Sticky Note, Dark Glass)
  * directly using HTML5 Canvas for 1-click sharing on Twitter, TikTok, Instagram, LinkedIn, etc.
  */
 
@@ -10,7 +10,7 @@
   const CARD_THEMES = {
     notebook: {
       id: 'notebook',
-      name: '📔 Spiral Notebook',
+      name: 'Spiral Notebook',
       bg: '#F8F7F2',
       lineColor: '#D9D7CE',
       marginLineColor: '#F2A0A0',
@@ -19,31 +19,24 @@
     },
     sticky: {
       id: 'sticky',
-      name: '🟨 Sticky Note',
+      name: 'Sticky Note',
       bg: '#FEF08A',
       textColor: '#1E293B',
       font: '"Outfit", "Inter", -apple-system, sans-serif'
     },
     darkglass: {
       id: 'darkglass',
-      name: '🌌 Dark Glassmorphism',
+      name: 'Dark Glassmorphism',
       bg: 'linear-gradient(135deg, #0F172A, #1E1B4B)',
       textColor: '#FFFFFF',
       font: '"Outfit", "Inter", -apple-system, sans-serif'
     },
     youtube: {
       id: 'youtube',
-      name: '🔴 YouTube Community Post',
+      name: 'YouTube Community Post',
       bg: '#0F0F0F',
       textColor: '#FFFFFF',
       font: '"Outfit", "Inter", -apple-system, sans-serif'
-    },
-    minimal: {
-      id: 'minimal',
-      name: '📄 Clean Paper',
-      bg: '#FFFFFF',
-      textColor: '#0F172A',
-      font: '"Inter", -apple-system, sans-serif'
     }
   };
 
@@ -86,7 +79,7 @@
       }
 
       // Paragraph spacing
-      currentY += lineHeight * 0.3;
+      currentY += lineHeight * 0.25;
     }
 
     return currentY;
@@ -96,10 +89,10 @@
    * Draws a realistic Spiral Notebook Card (like the viral social media posts)
    */
   function drawNotebookCard(ctx, width, height, options) {
-    const { title, text, footer, hook } = options;
+    const { title, text, footer, hook, siteName } = options;
 
     // Background drop shadow & outer dark canvas
-    ctx.fillStyle = '#0B0F19';
+    ctx.fillStyle = '#0B0D14';
     ctx.fillRect(0, 0, width, height);
 
     // Notebook Dimensions
@@ -107,13 +100,13 @@
     const padY = height * 0.06;
     const nbWidth = width - padX * 2;
     const nbHeight = height - padY * 2;
-    const cornerR = 24;
+    const cornerR = 20;
 
     // Outer Shadow
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-    ctx.shadowBlur = 30;
-    ctx.shadowOffsetY = 15;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+    ctx.shadowBlur = 32;
+    ctx.shadowOffsetY = 16;
 
     // Notebook Page Background
     ctx.fillStyle = '#FAF8F5';
@@ -121,10 +114,10 @@
     ctx.fill();
     ctx.restore();
 
-    // Subtle paper texture / gradient
+    // Subtle paper texture gradient
     const paperGrad = ctx.createLinearGradient(padX, padY, padX + nbWidth, padY + nbHeight);
     paperGrad.addColorStop(0, '#FFFFFF');
-    paperGrad.addColorStop(1, '#F3EFEA');
+    paperGrad.addColorStop(1, '#F4EFEA');
     ctx.fillStyle = paperGrad;
     roundedRect(ctx, padX, padY, nbWidth, nbHeight, cornerR);
     ctx.fill();
@@ -138,21 +131,21 @@
       const holeY = padY + 20 + i * spiralStep;
 
       // Hole
-      ctx.fillStyle = '#262626';
+      ctx.fillStyle = '#22252A';
       ctx.beginPath();
-      ctx.ellipse(spiralX, holeY, 7, 7, 0, 0, Math.PI * 2);
+      ctx.ellipse(spiralX, holeY, 6.5, 6.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // Spiral Ring (Metallic loop)
       ctx.strokeStyle = '#8E8E93';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 3.8;
       ctx.beginPath();
       ctx.arc(spiralX - 16, holeY, 18, -Math.PI * 0.35, Math.PI * 0.35);
       ctx.stroke();
 
       // Ring highlight
-      ctx.strokeStyle = '#D1D1D6';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#E5E5EA';
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
       ctx.arc(spiralX - 16, holeY, 17, -Math.PI * 0.25, Math.PI * 0.25);
       ctx.stroke();
@@ -167,10 +160,10 @@
     ctx.lineTo(marginX, padY + nbHeight - 10);
     ctx.stroke();
 
-    // Horizontal Blue/Grey Ruled Lines
-    const lineSpacing = 42;
-    const firstLineY = padY + 60;
-    const numLines = Math.floor((nbHeight - 90) / lineSpacing);
+    // Horizontal Ruled Lines
+    const lineSpacing = 38;
+    const firstLineY = padY + 54;
+    const numLines = Math.floor((nbHeight - 80) / lineSpacing);
 
     ctx.strokeStyle = '#E2E8F0';
     ctx.lineWidth = 1.2;
@@ -182,36 +175,47 @@
       ctx.stroke();
     }
 
-    // Handwriting Content Rendering
-    const contentX = marginX + 30;
-    const contentMaxWidth = nbWidth - (contentX - padX) - 35;
-    let curY = firstLineY + 28;
+    // Top Right Date / Stamp
+    const now = new Date();
+    const dateStr = `Date: ${now.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = 'bold 16px "Caveat", "Comic Sans MS", cursive, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(dateStr, padX + nbWidth - 25, padY + 36);
+    ctx.textAlign = 'start';
 
-    // 1. Hook / Sub-headline (e.g. "No hints, No clue...")
+    // Handwriting Content Rendering
+    const contentX = marginX + 24;
+    const contentMaxWidth = nbWidth - (contentX - padX) - 30;
+    let curY = firstLineY + 24;
+
+    // 1. Hook (Red pen)
     if (hook) {
       ctx.fillStyle = '#E11D48';
-      ctx.font = 'bold 28px "Caveat", "Comic Sans MS", cursive, sans-serif';
-      curY = wrapText(ctx, hook, contentX, curY, contentMaxWidth, 38, 3) + 10;
+      ctx.font = 'bold 26px "Caveat", "Comic Sans MS", cursive, sans-serif';
+      curY = wrapText(ctx, hook, contentX, curY, contentMaxWidth, 34, 2) + 8;
     }
 
-    // 2. Main Title / Question
-    ctx.fillStyle = '#0F2850';
-    ctx.font = 'bold 36px "Caveat", "Comic Sans MS", cursive, sans-serif';
-    curY = wrapText(ctx, title, contentX, curY, contentMaxWidth, 44, 4) + 12;
+    // 2. Main Title (Dark blue ink)
+    if (title) {
+      ctx.fillStyle = '#0F2850';
+      ctx.font = 'bold 34px "Caveat", "Comic Sans MS", cursive, sans-serif';
+      curY = wrapText(ctx, title, contentX, curY, contentMaxWidth, 38, 3) + 10;
+    }
 
-    // 3. Body Excerpt / Key Points
-    if (text) {
+    // 3. Body Text (Blue ink)
+    if (text && text !== title) {
       ctx.fillStyle = '#1E3A8A';
-      ctx.font = '28px "Caveat", "Comic Sans MS", cursive, sans-serif';
-      curY = wrapText(ctx, text, contentX, curY, contentMaxWidth, 42, 6) + 10;
+      ctx.font = '26px "Caveat", "Comic Sans MS", cursive, sans-serif';
+      curY = wrapText(ctx, text, contentX, curY, contentMaxWidth, 36, 7) + 8;
     }
 
-    // 4. Footer Note (e.g. "No winner yet" or "What's your answer?")
+    // 4. Footer Note (Cyan/Blue call-to-action)
     if (footer) {
       ctx.fillStyle = '#0284C7';
-      ctx.font = 'bold 30px "Caveat", "Comic Sans MS", cursive, sans-serif';
+      ctx.font = 'bold 28px "Caveat", "Comic Sans MS", cursive, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(footer, padX + nbWidth * 0.55, padY + nbHeight - 35);
+      ctx.fillText(footer, padX + nbWidth * 0.54, padY + nbHeight - 32);
       ctx.textAlign = 'start';
     }
   }
@@ -230,108 +234,79 @@
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, width, height);
 
-    // Glowing orb effects in background
-    drawGlowOrb(ctx, width * 0.8, height * 0.2, 220, 'rgba(99, 102, 241, 0.25)');
-    drawGlowOrb(ctx, width * 0.2, height * 0.8, 260, 'rgba(6, 182, 212, 0.2)');
+    // Glowing orb effects
+    drawGlowOrb(ctx, width * 0.8, height * 0.2, 220, 'rgba(59, 130, 246, 0.22)');
+    drawGlowOrb(ctx, width * 0.2, height * 0.8, 260, 'rgba(56, 189, 248, 0.18)');
 
     // Glass Card
-    const pad = 40;
+    const pad = 36;
     const cardW = width - pad * 2;
     const cardH = height - pad * 2;
+    const radius = 24;
 
     ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 20;
+
+    // Glass backdrop
     ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-    ctx.lineWidth = 2;
-    roundedRect(ctx, pad, pad, cardW, cardH, 24);
+    roundedRect(ctx, pad, pad, cardW, cardH, radius);
     ctx.fill();
+
+    // Glass border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.restore();
 
-    // Top Site / Hook Badge
-    const badgeText = hook || siteName || 'FEATURED POST';
-    ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
-    ctx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
-    ctx.lineWidth = 1.5;
-    roundedRect(ctx, pad + 30, pad + 35, ctx.measureText(badgeText).width + 80, 36, 18);
-    ctx.fill();
+    // Top Brand Tag
+    ctx.fillStyle = '#38BDF8';
+    ctx.font = '600 15px "Outfit", sans-serif';
+    ctx.fillText(siteName ? siteName.toUpperCase() : 'INSIGHT', pad + 32, pad + 48);
+
+    // Window controls
+    const dotY = pad + 44;
+    const dotStart = pad + cardW - 60;
+    drawDot(ctx, dotStart, dotY, 6, '#EF4444');
+    drawDot(ctx, dotStart + 18, dotY, 6, '#F59E0B');
+    drawDot(ctx, dotStart + 36, dotY, 6, '#10B981');
+
+    // Separator line
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad + 32, pad + 70);
+    ctx.lineTo(pad + cardW - 32, pad + 70);
     ctx.stroke();
 
-    ctx.fillStyle = '#818CF8';
-    ctx.font = 'bold 15px "Outfit", "Inter", sans-serif';
-    ctx.fillText('✨ ' + badgeText.toUpperCase(), pad + 45, pad + 59);
+    let textY = pad + 115;
+    const maxTextW = cardW - 64;
+
+    // Hook
+    if (hook) {
+      ctx.fillStyle = '#F43F5E';
+      ctx.font = '600 20px "Outfit", sans-serif';
+      textY = wrapText(ctx, hook, pad + 32, textY, maxTextW, 28, 2) + 12;
+    }
 
     // Title
-    let curY = pad + 120;
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 36px "Outfit", "Inter", sans-serif';
-    curY = wrapText(ctx, title, pad + 30, curY, cardW - 60, 48, 4) + 20;
+    ctx.font = 'bold 30px "Outfit", sans-serif';
+    textY = wrapText(ctx, title, pad + 32, textY, maxTextW, 40, 4) + 16;
 
-    // Body
-    if (text) {
+    // Text
+    if (text && text !== title) {
       ctx.fillStyle = '#94A3B8';
-      ctx.font = '20px "Inter", sans-serif';
-      curY = wrapText(ctx, text, pad + 30, curY, cardW - 60, 32, 6) + 20;
+      ctx.font = '19px "Inter", sans-serif';
+      textY = wrapText(ctx, text, pad + 32, textY, maxTextW, 30, 5) + 16;
     }
 
     // Footer
     if (footer) {
       ctx.fillStyle = '#38BDF8';
-      ctx.font = '600 18px "Outfit", "Inter", sans-serif';
-      ctx.fillText(`👉 ${footer}`, pad + 30, pad + cardH - 40);
-    }
-  }
-
-  /**
-   * Draws a Sticky Note Card
-   */
-  function drawStickyCard(ctx, width, height, options) {
-    const { title, text, footer, hook } = options;
-
-    ctx.fillStyle = '#0F172A';
-    ctx.fillRect(0, 0, width, height);
-
-    const pad = 45;
-    const cardW = width - pad * 2;
-    const cardH = height - pad * 2;
-
-    // Shadow
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 25;
-    ctx.shadowOffsetY = 12;
-
-    // Sticky Note Yellow
-    ctx.fillStyle = '#FEF08A';
-    roundedRect(ctx, pad, pad, cardW, cardH, 16);
-    ctx.fill();
-    ctx.restore();
-
-    // Top Tape / Pin bar
-    ctx.fillStyle = 'rgba(234, 179, 8, 0.3)';
-    ctx.fillRect(pad + cardW / 2 - 50, pad - 8, 100, 24);
-
-    let curY = pad + 60;
-    if (hook) {
-      ctx.fillStyle = '#B45309';
-      ctx.font = 'bold 22px "Outfit", "Inter", sans-serif';
-      curY = wrapText(ctx, `🔥 ${hook}`, pad + 30, curY, cardW - 60, 30, 2) + 12;
-    }
-
-    ctx.fillStyle = '#1E293B';
-    ctx.font = 'bold 32px "Outfit", "Inter", sans-serif';
-    curY = wrapText(ctx, title, pad + 30, curY, cardW - 60, 42, 4) + 14;
-
-    if (text) {
-      ctx.fillStyle = '#334155';
-      ctx.font = '20px "Inter", sans-serif';
-      curY = wrapText(ctx, text, pad + 30, curY, cardW - 60, 32, 6) + 10;
-    }
-
-    if (footer) {
-      ctx.fillStyle = '#0F766E';
-      ctx.font = 'bold 20px "Outfit", "Inter", sans-serif';
-      ctx.fillText(footer, pad + 30, pad + cardH - 30);
+      ctx.font = '600 17px "Outfit", sans-serif';
+      ctx.fillText(footer, pad + 32, pad + cardH - 32);
     }
   }
 
@@ -341,91 +316,137 @@
   function drawYouTubeCommunityCard(ctx, width, height, options) {
     const { title, text, footer, hook, siteName } = options;
 
-    // Dark sleek YouTube background with red ambient glow
-    ctx.fillStyle = '#0A0A0A';
+    ctx.fillStyle = '#0F0F0F';
     ctx.fillRect(0, 0, width, height);
 
-    drawGlowOrb(ctx, width * 0.9, height * 0.15, 240, 'rgba(255, 0, 0, 0.22)');
-    drawGlowOrb(ctx, width * 0.15, height * 0.85, 220, 'rgba(180, 0, 0, 0.15)');
+    drawGlowOrb(ctx, width * 0.5, height * 0.25, 280, 'rgba(255, 0, 0, 0.12)');
 
     const pad = 36;
     const cardW = width - pad * 2;
     const cardH = height - pad * 2;
+    const radius = 18;
 
-    // Main Card Surface
-    ctx.save();
-    ctx.fillStyle = '#141414';
+    // Card background
+    ctx.fillStyle = '#1A1A1A';
+    roundedRect(ctx, pad, pad, cardW, cardH, radius);
+    ctx.fill();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.lineWidth = 2;
-    roundedRect(ctx, pad, pad, cardW, cardH, 20);
-    ctx.fill();
+    ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.restore();
 
-    // Top YouTube Red Badge
-    const badgeW = 210;
-    const badgeH = 38;
+    // YouTube Header
+    const headY = pad + 40;
+    
+    // YouTube Avatar Circle
     ctx.fillStyle = '#FF0000';
-    roundedRect(ctx, pad + 24, pad + 24, badgeW, badgeH, 19);
+    ctx.beginPath();
+    ctx.arc(pad + 44, headY, 20, 0, Math.PI * 2);
     ctx.fill();
 
-    // Play Triangle Icon inside badge
+    // Play icon inside avatar
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.moveTo(pad + 40, pad + 35);
-    ctx.lineTo(pad + 52, pad + 43);
-    ctx.lineTo(pad + 40, pad + 51);
+    ctx.moveTo(pad + 40, headY - 8);
+    ctx.lineTo(pad + 52, headY);
+    ctx.lineTo(pad + 40, headY + 8);
     ctx.closePath();
     ctx.fill();
 
+    // Channel Name & Badge
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 13px "Outfit", "Inter", sans-serif';
-    ctx.fillText('YOUTUBE COMMUNITY', pad + 60, pad + 48);
+    ctx.font = 'bold 18px "Outfit", sans-serif';
+    ctx.fillText(siteName || 'YouTube Community', pad + 76, headY - 2);
 
-    // Site / Author tag on right
-    if (siteName) {
-      ctx.fillStyle = '#AAAAAA';
-      ctx.font = '600 13px "Outfit", "Inter", sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText(siteName.toUpperCase(), pad + cardW - 24, pad + 48);
-      ctx.textAlign = 'start';
-    }
+    ctx.fillStyle = '#AAAAAA';
+    ctx.font = '13px "Inter", sans-serif';
+    ctx.fillText('Official Post • Just now', pad + 76, headY + 16);
 
-    // Top Hook / Question
-    let curY = pad + 100;
+    // Separator
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.beginPath();
+    ctx.moveTo(pad + 24, pad + 80);
+    ctx.lineTo(pad + cardW - 24, pad + 80);
+    ctx.stroke();
+
+    let textY = pad + 125;
+    const maxW = cardW - 48;
+
     if (hook) {
       ctx.fillStyle = '#FF4D4D';
-      ctx.font = 'bold 20px "Outfit", "Inter", sans-serif';
-      curY = wrapText(ctx, hook, pad + 24, curY, cardW - 48, 28, 2) + 12;
+      ctx.font = '600 20px "Outfit", sans-serif';
+      textY = wrapText(ctx, hook, pad + 24, textY, maxW, 28, 2) + 12;
     }
 
-    // Title / Main Prompt
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 34px "Outfit", "Inter", sans-serif';
-    curY = wrapText(ctx, title, pad + 24, curY, cardW - 48, 44, 4) + 16;
+    ctx.font = 'bold 28px "Outfit", sans-serif';
+    textY = wrapText(ctx, title, pad + 24, textY, maxW, 38, 4) + 14;
 
-    // Body excerpt
-    if (text) {
-      ctx.fillStyle = '#CCCCCC';
+    if (text && text !== title) {
+      ctx.fillStyle = '#D4D4D4';
       ctx.font = '18px "Inter", sans-serif';
-      curY = wrapText(ctx, text, pad + 24, curY, cardW - 48, 28, 5) + 16;
+      textY = wrapText(ctx, text, pad + 24, textY, maxW, 28, 5) + 14;
     }
 
-    // Interactive Poll/Action bar simulation
-    const barY = pad + cardH - 85;
-    ctx.fillStyle = '#222222';
-    roundedRect(ctx, pad + 24, barY, cardW - 48, 42, 8);
+    // Engagement Bar at bottom
+    const barY = pad + cardH - 35;
+    ctx.fillStyle = '#FF0000';
+    ctx.font = 'bold 16px "Outfit", sans-serif';
+    ctx.fillText(footer || 'Vote or Comment below', pad + 24, barY);
+  }
+
+  /**
+   * Draws a Realistic Yellow Sticky Note Card
+   */
+  function drawStickyCard(ctx, width, height, options) {
+    const { title, text, footer, hook } = options;
+
+    ctx.fillStyle = '#0B0D14';
+    ctx.fillRect(0, 0, width, height);
+
+    const pad = 44;
+    const cardW = width - pad * 2;
+    const cardH = height - pad * 2;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetY = 16;
+
+    ctx.fillStyle = '#FEF08A';
+    roundedRect(ctx, pad, pad, cardW, cardH, 8);
+    ctx.fill();
+    ctx.restore();
+
+    // Tape on top
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+    roundedRect(ctx, width / 2 - 50, pad - 12, 100, 24, 4);
     ctx.fill();
 
-    ctx.fillStyle = '#3EA6FF';
-    ctx.font = '600 14px "Outfit", "Inter", sans-serif';
-    ctx.fillText('🔗 Tap link in description / comment to read more', pad + 38, barY + 26);
+    let curY = pad + 60;
+    const maxW = cardW - 48;
 
-    // Bottom Engagement prompt
+    if (hook) {
+      ctx.fillStyle = '#DC2626';
+      ctx.font = 'bold 24px "Caveat", cursive, sans-serif';
+      curY = wrapText(ctx, hook, pad + 24, curY, maxW, 32, 2) + 10;
+    }
+
+    ctx.fillStyle = '#1E293B';
+    ctx.font = 'bold 32px "Caveat", cursive, sans-serif';
+    curY = wrapText(ctx, title, pad + 24, curY, maxW, 38, 4) + 12;
+
+    if (text && text !== title) {
+      ctx.fillStyle = '#334155';
+      ctx.font = '25px "Caveat", cursive, sans-serif';
+      curY = wrapText(ctx, text, pad + 24, curY, maxW, 34, 6) + 10;
+    }
+
     if (footer) {
-      ctx.fillStyle = '#888888';
-      ctx.font = '500 13px "Inter", sans-serif';
-      ctx.fillText(`💬 ${footer}`, pad + 24, pad + cardH - 18);
+      ctx.fillStyle = '#2563EB';
+      ctx.font = 'bold 26px "Caveat", cursive, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(footer, width / 2, pad + cardH - 28);
+      ctx.textAlign = 'start';
     }
   }
 
@@ -444,77 +465,58 @@
     ctx.closePath();
   }
 
-  function drawGlowOrb(ctx, cx, cy, radius, color) {
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+  function drawGlowOrb(ctx, x, y, radius, color) {
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
     grad.addColorStop(0, color);
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawDot(ctx, x, y, radius, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
   }
 
   /**
-   * Main function to render a post card to an HTML5 Canvas
-   * @param {HTMLCanvasElement} canvas
-   * @param {Object} options
+   * Main Dispatcher to Render Card
    */
-  function renderCard(canvas, options = {}) {
-    const width = options.width || 800;
-    const height = options.height || 800;
+  function renderCard(canvas, options) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const width = options.width || 700;
+    const height = options.height || 700;
+
     canvas.width = width;
     canvas.height = height;
 
-    const ctx = canvas.getContext('2d');
     const theme = options.theme || 'notebook';
 
-    if (theme === 'notebook') {
-      drawNotebookCard(ctx, width, height, options);
-    } else if (theme === 'sticky') {
-      drawStickyCard(ctx, width, height, options);
-    } else if (theme === 'youtube') {
-      drawYouTubeCommunityCard(ctx, width, height, options);
-    } else {
-      drawDarkGlassCard(ctx, width, height, options);
+    switch (theme) {
+      case 'youtube':
+        drawYouTubeCommunityCard(ctx, width, height, options);
+        break;
+      case 'sticky':
+        drawStickyCard(ctx, width, height, options);
+        break;
+      case 'darkglass':
+        drawDarkGlassCard(ctx, width, height, options);
+        break;
+      case 'notebook':
+      default:
+        drawNotebookCard(ctx, width, height, options);
+        break;
     }
   }
 
-  /**
-   * Converts canvas to Blob/PNG and triggers download
-   */
-  function downloadCanvasImage(canvas, filename = 'social-post-card.png') {
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  }
-
-  /**
-   * Copies canvas image to system clipboard
-   */
-  async function copyCanvasImage(canvas) {
-    return new Promise((resolve, reject) => {
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          reject(new Error('Canvas to blob failed'));
-          return;
-        }
-        try {
-          const item = new ClipboardItem({ 'image/png': blob });
-          await navigator.clipboard.write([item]);
-          resolve(true);
-        } catch (err) {
-          reject(err);
-        }
-      });
-    });
-  }
-
+  // Export
   const CardGenerator = {
     CARD_THEMES,
-    renderCard,
-    downloadCanvasImage,
-    copyCanvasImage
+    renderCard
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -522,4 +524,4 @@
   } else {
     global.CardGenerator = CardGenerator;
   }
-})(typeof window !== 'undefined' ? window : this);
+})(typeof globalThis !== 'undefined' ? globalThis : this);

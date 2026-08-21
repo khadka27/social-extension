@@ -166,7 +166,8 @@
     helper.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
         <span style="font-weight: 600; font-size: 12.5px; color: #F1F5F9; display: flex; align-items: center; gap: 6px;">
-          🎥 YouTube Studio Helper
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          YouTube Studio Helper
         </span>
         <button id="close-yt-helper-btn" style="background: none; border: none; color: #64748B; cursor: pointer; font-size: 16px; padding: 0 4px;">&times;</button>
       </div>
@@ -175,17 +176,20 @@
       </p>
       <div style="display: flex; flex-direction: column; gap: 6px;">
         <button id="yt-open-upload-btn" style="background: #2563EB; color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 7px 12px; border-radius: 6px; font-weight: 600; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-          🚀 Open Upload Video Dialog
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          Open Upload Video Dialog
         </button>
-        <button id="yt-autofill-btn" style="background: #1A1D27; border: 1px solid rgba(255, 255, 255, 0.1); color: #E2E8F0; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 11.5px; cursor: pointer;">
-          ✨ Auto-Fill Title & Description
+        <button id="yt-autofill-btn" style="background: #1A1D27; border: 1px solid rgba(255, 255, 255, 0.1); color: #E2E8F0; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          Auto-Fill Title & Description
         </button>
-        <button id="yt-copy-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #94A3B8; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;">
-          📋 Copy Description & Tags
+        <button id="yt-copy-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #94A3B8; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Copy Description & Tags
         </button>
       </div>
       <p style="font-size: 10px; color: #64748B; margin: 8px 0 0 0; text-align: center;">
-        💡 Click "Open Upload Video Dialog" or select from Downloads!
+        Select video file from Downloads to begin
       </p>
     `;
 
@@ -199,9 +203,9 @@
 
     helper.querySelector('#yt-copy-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(textToUse);
-      helper.querySelector('#yt-copy-btn').textContent = '✅ Copied to Clipboard!';
+      helper.querySelector('#yt-copy-btn').textContent = 'Copied to Clipboard!';
       setTimeout(() => {
-        helper.querySelector('#yt-copy-btn').textContent = '📋 Copy Description & Tags';
+        helper.querySelector('#yt-copy-btn').innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy Description & Tags`;
       }, 2000);
     });
 
@@ -221,28 +225,21 @@
       return;
     }
 
-    // 2. Main central dashboard "Upload videos" button
-    const centerUploadBtn = document.querySelector('#upload-button button, ytcp-button#upload-button, [aria-label*="Upload videos"]');
-    if (centerUploadBtn) {
-      centerUploadBtn.click();
+    // 2. Central Upload button in dashboard
+    const uploadBtn = document.querySelector('#upload-button, button[aria-label*="Upload"], ytcp-button#upload-button');
+    if (uploadBtn) {
+      uploadBtn.click();
       return;
     }
 
-    // 3. Top-right Create button -> Upload videos
-    const createBtn = document.querySelector('#create-icon, button[aria-label="Create"], ytcp-button#create-icon');
+    // 3. Top-right Create button
+    const createBtn = document.querySelector('#create-icon, button[aria-label*="Create"], ytcp-button#create-icon');
     if (createBtn) {
       createBtn.click();
       setTimeout(() => {
-        const uploadMenuItem = document.querySelector('tp-yt-paper-item, ytcp-text-menu-item, [test-id="upload-action-item"]');
-        if (uploadMenuItem) uploadMenuItem.click();
-      }, 300);
-      return;
-    }
-
-    // 4. Header upload icon
-    const headerUpload = document.querySelector('ytcp-icon-button#upload-icon, button#upload-icon');
-    if (headerUpload) {
-      headerUpload.click();
+        const uploadOption = document.querySelector('tp-yt-paper-item#text-item-0, ytcp-text-menu #text-item-0, yt-formatted-string:contains("Upload videos")');
+        if (uploadOption) uploadOption.click();
+      }, 350);
     }
   }
 
@@ -277,7 +274,8 @@
     helper.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
         <span style="font-weight: 600; font-size: 12.5px; color: #F1F5F9; display: flex; align-items: center; gap: 6px;">
-          🎵 TikTok Studio Helper
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#FE2C55"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-.88-.06A6.34 6.34 0 0 0 3.14 15.68a6.34 6.34 0 0 0 10.82 4.48 6.27 6.27 0 0 0 1.86-4.49v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+          TikTok Studio Helper
         </span>
         <button id="close-tiktok-helper-btn" style="background: none; border: none; color: #64748B; cursor: pointer; font-size: 16px; padding: 0 4px;">&times;</button>
       </div>
@@ -286,17 +284,20 @@
       </p>
       <div style="display: flex; flex-direction: column; gap: 6px;">
         <button id="tiktok-select-file-btn" style="background: #2563EB; color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 7px 12px; border-radius: 6px; font-weight: 600; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-          📂 Select Video From Downloads
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          Select Video From Downloads
         </button>
-        <button id="tiktok-autofill-btn" style="background: #1A1D27; border: 1px solid rgba(255, 255, 255, 0.1); color: #E2E8F0; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 11.5px; cursor: pointer;">
-          ✨ Auto-Fill Caption in Box
+        <button id="tiktok-autofill-btn" style="background: #1A1D27; border: 1px solid rgba(255, 255, 255, 0.1); color: #E2E8F0; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          Auto-Fill Caption in Box
         </button>
-        <button id="tiktok-copy-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #94A3B8; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;">
-          📋 Copy Caption & Hashtags
+        <button id="tiktok-copy-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #94A3B8; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Copy Caption & Hashtags
         </button>
       </div>
       <p style="font-size: 10px; color: #64748B; margin: 8px 0 0 0; text-align: center;">
-        💡 Click "Select Video" or drag video file into box above!
+        Select video or drag video file into dropzone above
       </p>
     `;
 
@@ -317,9 +318,9 @@
 
     helper.querySelector('#tiktok-copy-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(textToUse);
-      helper.querySelector('#tiktok-copy-btn').textContent = '✅ Copied to Clipboard!';
+      helper.querySelector('#tiktok-copy-btn').textContent = 'Copied to Clipboard!';
       setTimeout(() => {
-        helper.querySelector('#tiktok-copy-btn').textContent = '📋 Copy Caption & Hashtags';
+        helper.querySelector('#tiktok-copy-btn').innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy Caption & Hashtags`;
       }, 2000);
     });
 

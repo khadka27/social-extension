@@ -69,7 +69,7 @@ console.log('🧪 Running SocialShare Extension Tests...\n');
 
   // Test TikTok
   const tiktokUrl = SocialShare.PLATFORMS.tiktok.getUrl(mockData);
-  assert.strictEqual(tiktokUrl, 'https://www.tiktok.com/upload');
+  assert.strictEqual(tiktokUrl, 'https://www.tiktok.com/tiktokstudio/upload');
   const tiktokCaption = SocialShare.PLATFORMS.tiktok.getCaption(mockData);
   assert.ok(tiktokCaption.includes('The Future of Web Extensions in 2026'));
   assert.ok(tiktokCaption.includes('#fyp'));
@@ -94,21 +94,21 @@ console.log('🧪 Running SocialShare Extension Tests...\n');
   };
 
   const standard = SocialShare.TEMPLATES.standard(mockData);
-  assert.ok(standard.includes('📖 How to Build an Extension'));
+  assert.ok(standard.includes('How to Build an Extension'));
   assert.ok(standard.includes('#Coding #Web'));
   console.log('✓ Standard template formatting valid');
 
   const casual = SocialShare.TEMPLATES.casual(mockData);
-  assert.ok(casual.includes('Just found this great read!'));
+  assert.ok(casual.includes('Great read:'));
   console.log('✓ Casual template formatting valid');
 
   const riddle = SocialShare.TEMPLATES.riddle(mockData);
   assert.ok(riddle.includes('No hints'));
-  assert.ok(riddle.includes('Just pure logic'));
+  assert.ok(riddle.includes('pure logic'));
   console.log('✓ Riddle / Logic hook template valid');
 
   const curiosity = SocialShare.TEMPLATES.curiosity(mockData);
-  assert.ok(curiosity.includes('99% of people'));
+  assert.ok(curiosity.includes('Key question to consider'));
   console.log('✓ Curiosity template valid');
 
   const md = SocialShare.formatAsMarkdown(mockData);
