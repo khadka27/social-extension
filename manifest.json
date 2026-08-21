@@ -7,11 +7,21 @@
     "activeTab",
     "scripting",
     "storage",
-    "contextMenus"
+    "contextMenus",
+    "notifications"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
+  "commands": {
+    "auto-post-current-tab": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
+      },
+      "description": "⚡ Auto-extract and auto-post current blog page to all social networks in background"
+    }
+  },
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {

@@ -1,10 +1,23 @@
 /**
  * SocialShare - Background Service Worker
- * Handles context menus, cross-origin URL fetching, and metadata parsing.
+ * Handles context menus, keyboard shortcuts, background auto-posting,
+ * cross-origin URL fetching, and metadata parsing.
  */
+
+try {
+  importScripts('extractor.js', 'social-share.js');
+} catch (e) {
+  console.log('Scripts imported in service worker');
+}
 
 // Initialize context menus on installation
 chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: 'socialshare-autopost',
+    title: '⚡ Instant Auto-Post to Social Media',
+    contexts: ['page']
+  });
+
   chrome.contextMenus.create({
     id: 'socialshare-page',
     title: 'Share Page with SocialShare',
@@ -18,21 +31,142 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// Handle keyboard shortcuts (e.g. Alt+Shift+S)
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === 'auto-post-current-tab') {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab && activeTab.id) {
+      triggerBackgroundAutoPost(activeTab);
+    }
+  }
+});
+
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === 'socialshare-autopost') {
+    if (tab && tab.id) {
+      triggerBackgroundAutoPost(tab);
+    }
+    return;
+  }
+
   const targetUrl = info.linkUrl || info.pageUrl || tab?.url;
   if (targetUrl) {
     // Store selected URL for popup consumption
     await chrome.storage.local.set({ pendingShareUrl: targetUrl });
     
-    // Open action popup or notification
+    // Open action popup
     if (chrome.action.openPopup) {
-      chrome.action.openPopup().catch(() => {
-        // Fallback: create notification if popup couldn't open automatically
-      });
+      chrome.action.openPopup().catch(() => {});
     }
   }
 });
+
+/**
+ * Triggers background auto-posting for an active tab
+ * Extracts metadata, generates unique copy per platform, and opens all share tabs in background
+ */
+async function triggerBackgroundAutoPost(tab) {
+  if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) {
+    showNotification('Cannot Auto-Post', 'Internal browser pages cannot be shared.');
+    return;
+  }
+
+  try {
+    // 1. Extract metadata from tab
+    chrome.tabs.sendMessage(tab.id, { action: 'EXTRACT_METADATA' }, async (response) => {
+      let data = response?.data;
+
+      // Fallback if content script not yet injected
+      if (!data) {
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['scripts/extractor.js', 'scripts/content.js']
+          });
+
+          const retryRes = await new Promise((resolve) => {
+            chrome.tabs.sendMessage(tab.id, { action: 'EXTRACT_METADATA' }, (res) => resolve(res));
+          });
+          data = retryRes?.data;
+        } catch (e) {}
+      }
+
+      if (!data) {
+        data = {
+          title: tab.title || 'Untitled Blog Post',
+          url: tab.url,
+          description: '',
+          image: '',
+          tags: []
+        };
+      }
+
+      // 2. Read user's platform preferences
+      const stored = await chrome.storage.local.get(['autoPostPlatforms', 'autoRandomize']);
+      const platforms = stored.autoPostPlatforms && stored.autoPostPlatforms.length > 0 
+        ? stored.autoPostPlatforms 
+        : ['twitter', 'linkedin', 'threads', 'reddit'];
+
+      const shouldRandomize = typeof stored.autoRandomize === 'boolean' ? stored.autoRandomize : true;
+
+      // 3. Open share intent tabs sequentially
+      let openedCount = 0;
+      platforms.forEach((platKey, index) => {
+        const platform = SocialShare.PLATFORMS[platKey];
+        if (!platform) return;
+
+        let postTitle = data.title;
+        if (shouldRandomize && typeof SocialShare.makeUnique === 'function') {
+          postTitle = SocialShare.makeUnique(data.title, data.description);
+        }
+
+        const shareUrl = platform.getUrl({
+          title: postTitle,
+          description: data.description,
+          url: data.url,
+          image: data.image,
+          siteName: data.siteName,
+          author: data.author,
+          tags: SocialShare.formatHashtags(data.tags)
+        });
+
+        if (shareUrl) {
+          setTimeout(() => {
+            if (platKey === 'tiktok' || platKey === 'youtube') {
+              chrome.tabs.create({ url: shareUrl, active: false });
+            } else {
+              chrome.tabs.create({ url: shareUrl, active: false });
+            }
+          }, index * 400);
+          openedCount++;
+        }
+      });
+
+      showNotification(
+        '⚡ SocialShare Auto-Post Complete!',
+        `Successfully launched ${openedCount} social share tabs in background.`
+      );
+    });
+  } catch (err) {
+    showNotification('Auto-Post Error', err.message || 'Could not complete auto-post.');
+  }
+}
+
+/**
+ * System notification helper
+ */
+function showNotification(title, message) {
+  if (chrome.notifications) {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: title,
+      message: message,
+      priority: 2
+    });
+  }
+}
 
 // Message listener for external URL fetching and background tasks
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -42,6 +176,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .then(data => sendResponse({ success: true, data }))
       .catch(err => sendResponse({ success: false, error: err.message }));
     return true; // Keep channel open for async fetch
+  }
+
+  if (request.action === 'BACKGROUND_AUTO_POST') {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (tab) triggerBackgroundAutoPost(tab);
+    });
+    sendResponse({ success: true });
+    return true;
   }
 });
 
@@ -78,7 +220,6 @@ async function fetchExternalMetadata(url) {
  */
 function parseHtmlMetadata(html, url) {
   function getMeta(propertyOrName) {
-    // Match property="og:title" content="..." or name="..." content="..."
     const patterns = [
       new RegExp(`<meta[^>]+(?:property|name)=["']${propertyOrName}["'][^>]+content=["']([^"']+)["']`, 'i'),
       new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${propertyOrName}["']`, 'i')
