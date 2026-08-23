@@ -605,7 +605,12 @@
       );
       for (const input of fileInputs) {
         try {
-          input.files = dt.files;
+          const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'files')?.set;
+          if (nativeSetter) {
+            nativeSetter.call(input, dt.files);
+          } else {
+            input.files = dt.files;
+          }
           input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
           input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
         } catch (e) {}
@@ -932,7 +937,12 @@
       );
       for (const input of fileInputs) {
         try {
-          input.files = dt.files;
+          const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'files')?.set;
+          if (nativeSetter) {
+            nativeSetter.call(input, dt.files);
+          } else {
+            input.files = dt.files;
+          }
           input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
           input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
         } catch (e) {}

@@ -744,12 +744,25 @@
     if (!url) return '';
     if (url.startsWith('data:')) return url;
     try {
+      const bgDataUrl = await new Promise((resolve) => {
+        if (chrome.runtime && chrome.runtime.sendMessage) {
+          chrome.runtime.sendMessage({ action: 'FETCH_IMAGE_BASE64', url: url }, (response) => {
+            resolve(response && response.success ? response.dataUrl : '');
+          });
+        } else {
+          resolve('');
+        }
+      });
+      if (bgDataUrl) return bgDataUrl;
+    } catch (e) {}
+
+    try {
       const response = await fetch(url);
       if (!response.ok) return '';
       const blob = await response.blob();
       return new Promise((resolve) => {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
+        reader.onloadend = () => resolve(reader.result || '');
         reader.onerror = () => resolve('');
         reader.readAsDataURL(blob);
       });

@@ -110,6 +110,8 @@ async function triggerBackgroundAutoPost(tab) {
 
       const shouldRandomize = typeof stored.autoRandomize === 'boolean' ? stored.autoRandomize : true;
 
+      const imageDataUrl = data.image ? await fetchImageAsBase64(data.image) : '';
+
       // 3. Open share intent tabs sequentially
       let openedCount = 0;
       platforms.forEach((platKey, index) => {
@@ -147,12 +149,16 @@ async function triggerBackgroundAutoPost(tab) {
               title: postTitle,
               description: data.description,
               url: data.url,
+              image: data.image || '',
+              imageDataUrl: imageDataUrl || '',
               timestamp: Date.now()
             },
             pendingFacebookPost: {
               text: fullPost,
               title: postTitle,
               description: data.description,
+              image: data.image || '',
+              imageDataUrl: imageDataUrl || '',
               timestamp: Date.now()
             }
           });
@@ -193,13 +199,10 @@ function showNotification(title, message) {
   }
 }
 
-// Message listener for external URL fetching and background tasks
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'FETCH_EXTERNAL_METADATA') {
-    const url = request.url;
-    fetchExternalMetadata(url)
-      .then(data => sendResponse({ success: true, data }))
-      .catch(err => sendResponse({ success: false, error: err.message }));
+  if (request.action === 'FETCH_IMAGE_BASE64') {
+    fetchImageAsBase64(request.url)
+      .then(dataUrl => sendResponse({ success: true, dataUrl }))
+      .catch(() => sendResponse({ success: false, dataUrl: '' }));
     return true; // Keep channel open for async fetch
   }
 
@@ -211,6 +214,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 });
+
+/**
+ * Fetches an image URL in background context (bypassing CORS) and returns Base64 Data URL
+ * @param {string} imageUrl
+ * @returns {Promise<string>}
+ */
+async function fetchImageAsBase64(imageUrl) {
+  if (!imageUrl) return '';
+  if (imageUrl.startsWith('data:')) return imageUrl;
+  try {
+    const res = await fetch(imageUrl, { cache: 'no-cache' });
+    if (!res.ok) return '';
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    return '';
+  }
+}
 
 /**
  * Fetches an external URL and extracts metadata using string/regex parsing
