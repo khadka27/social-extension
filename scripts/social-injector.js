@@ -104,6 +104,43 @@
   const chromeApi = typeof chrome !== 'undefined' && chrome.storage ? chrome : (typeof browser !== 'undefined' ? browser : null);
 
   /**
+   * Builds the fallback text if postData.text is missing
+   */
+  function buildFallbackPostText(postData) {
+    if (!postData) return '';
+    if (postData.text) return postData.text;
+    const parts = [];
+    if (postData.title) parts.push(postData.title);
+    if (postData.description) parts.push(postData.description);
+    if (postData.url) parts.push(`Read full article: ${postData.url}`);
+    if (postData.tags && postData.tags.length) {
+      const formattedTags = postData.tags.map(t => t.startsWith('#') ? t : `#${t}`);
+      parts.push(formattedTags.join(' '));
+    }
+    return parts.join('\n\n');
+  }
+
+  /**
+   * Helper to verify if the text in the composer matches the target text
+   */
+  function isTextFullyInjected(currentText, targetText) {
+    if (!currentText || !targetText) return false;
+    const cur = currentText.trim();
+    const target = targetText.trim();
+
+    if (cur === target) return true;
+    if (target.length > 30 && cur.length >= Math.min(target.length * 0.85, target.length - 15)) return true;
+
+    const startSnippet = target.slice(0, 20).trim();
+    const endSnippet = target.slice(-25).trim();
+
+    if (startSnippet && endSnippet && cur.includes(startSnippet) && cur.includes(endSnippet)) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Processes a pending post payload and triggers UI helpers & composer injection
    */
   function processPendingPost(postData) {
@@ -118,7 +155,7 @@
     const currentPlat = detectCurrentPlatform(postData.platform);
     if (!currentPlat) return;
 
-    const textToInject = postData.text || `${postData.title}\n\n${postData.description}`;
+    const textToInject = buildFallbackPostText(postData);
     if (!textToInject) return;
 
     // Special LinkedIn Assistant & Auto-Trigger
@@ -515,8 +552,7 @@
       if (composer) {
         injectTextIntoComposer(composer, text, platform, forceOverwrite, postData);
         const currentText = (composer.textContent || '').trim();
-        const snippet = text.slice(0, 15).trim();
-        if (currentText.length > 5 && currentText.includes(snippet)) {
+        if (isTextFullyInjected(currentText, text)) {
           clearInterval(interval);
         } else if (attempts >= maxAttempts) {
           clearInterval(interval);
@@ -571,12 +607,33 @@
   function injectTextIntoComposer(composer, text, platform, forceOverwrite = false, postData = null) {
     if (!composer || !text) return;
 
-    if (!forceOverwrite && composer.textContent && composer.textContent.trim() === text.trim()) {
+    const trimmedText = text.trim();
+    const currentText = (composer.textContent || '').trim();
+
+    // If composer already has the exact full text injected, return early
+    if (!forceOverwrite && currentText === trimmedText) {
       return;
     }
 
-    if (!forceOverwrite && composer.textContent && composer.textContent.trim().length > 25 && !composer.textContent.toLowerCase().includes('share your thoughts')) {
-      return;
+    // Detect if current composer text is just a partial pre-fill (e.g. native LinkedIn URL title pre-fill)
+    const isPartialPreFill = postData && postData.title && (
+      currentText === postData.title.trim() ||
+      trimmedText.startsWith(currentText) ||
+      (currentText.length > 0 && trimmedText.includes(currentText) && currentText.length < trimmedText.length * 0.9)
+    );
+
+    // If not forcing overwrite and NOT a partial pre-fill:
+    // Only skip if current text is substantial and user typed custom text (not default placeholders)
+    if (!forceOverwrite && !isPartialPreFill && currentText.length > 25) {
+      const lower = currentText.toLowerCase();
+      const isPlaceholder = lower.includes('share your thoughts') ||
+                            lower.includes('what\'s on your mind') ||
+                            lower.includes('start a post') ||
+                            lower.includes('what do you want to talk about') ||
+                            lower.includes('write something');
+      if (!isPlaceholder && isTextFullyInjected(currentText, trimmedText)) {
+        return;
+      }
     }
 
     // Ensure element is editable using standard isContentEditable property or element type
@@ -595,27 +652,31 @@
         composer.click();
       }
 
-      // Method A: Synthesize Clipboard paste event for Quill / Draft.js / ProseMirror
-      let pastedSuccess = false;
-      try {
-        const dt = new DataTransfer();
-        dt.setData('text/plain', text);
-        const pasteEvt = new ClipboardEvent('paste', {
-          bubbles: true,
-          cancelable: true,
-          clipboardData: dt
-        });
-        pastedSuccess = composer.dispatchEvent(pasteEvt);
-      } catch (pe) {}
+      // Always select composer contents first so partial pre-filled title gets cleanly replaced
+      selectComposerContentsOnly(composer);
 
-      // Method B: Try document.execCommand('insertText')
+      // Method A: Try native document.execCommand('insertText') (works best in Chrome/Brave rich-text editors)
       let execSuccess = false;
       try {
         execSuccess = document.execCommand('insertText', false, text);
       } catch (ie) {}
 
+      // Method B: Try Clipboard paste event synthesis if execCommand failed or didn't complete text
+      if (!execSuccess || !isTextFullyInjected((composer.textContent || '').trim(), trimmedText)) {
+        try {
+          const dt = new DataTransfer();
+          dt.setData('text/plain', text);
+          const pasteEvt = new ClipboardEvent('paste', {
+            bubbles: true,
+            cancelable: true,
+            clipboardData: dt
+          });
+          composer.dispatchEvent(pasteEvt);
+        } catch (pe) {}
+      }
+
       // Method C: Direct DOM insertion fallback (Quill / DraftJS / ProseMirror paragraphs)
-      if ((!pastedSuccess && !execSuccess) || !composer.textContent || composer.textContent.trim() !== text.trim()) {
+      if (!isTextFullyInjected((composer.textContent || '').trim(), trimmedText)) {
         composer.innerHTML = '';
         const lines = text.split('\n');
         lines.forEach((line) => {
