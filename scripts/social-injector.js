@@ -395,6 +395,22 @@
   }
 
   /**
+   * Helper that checks if an element is visible in the DOM
+   * (Reliable even in position:fixed modals where offsetParent is null)
+   */
+  function isElementVisible(el) {
+    if (!el) return false;
+    if (el.getAttribute('aria-hidden') === 'true') return false;
+    try {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 || rect.height > 0 || (el.getClientRects && el.getClientRects().length > 0)) {
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  /**
    * Polls DOM to find active composer element on the current platform
    */
   function attemptComposerInjection(platform, text, postData) {
@@ -420,7 +436,7 @@
         if (titleEl && postData && postData.title) {
           const currentTitle = titleEl.textContent ? titleEl.textContent.trim() : '';
           if (currentTitle !== postData.title.trim()) {
-            injectTextIntoComposer(titleEl, postData.title, platform, true);
+            injectTextIntoComposer(titleEl, postData.title, platform, true, postData);
           }
           titleUpdated = (titleEl.textContent && titleEl.textContent.trim() === postData.title.trim());
         }
@@ -437,7 +453,7 @@
 
           const currentDesc = descEl.textContent ? descEl.textContent.trim() : '';
           if (currentDesc !== descToInject.trim()) {
-            injectTextIntoComposer(descEl, descToInject, platform, true);
+            injectTextIntoComposer(descEl, descToInject, platform, true, postData);
           }
           descUpdated = (descEl.textContent && descEl.textContent.trim().length > 0);
         }
@@ -453,7 +469,7 @@
       for (const sel of selectors) {
         const found = document.querySelectorAll(sel);
         for (const el of found) {
-          if (el.offsetParent !== null && !el.getAttribute('aria-hidden')) {
+          if (isElementVisible(el)) {
             composer = el;
             break;
           }
@@ -465,8 +481,8 @@
       if (!composer && (platform === 'linkedin' || platform === 'linkedin_page')) {
         const modal = document.querySelector('div[role="dialog"], div.share-box, div.share-creation-state, div.artdeco-modal, div.editor-content');
         if (modal) {
-          const editable = modal.querySelector('div[contenteditable="true"], textarea');
-          if (editable && editable.offsetParent !== null) {
+          const editable = modal.querySelector('div.ql-editor[contenteditable="true"], div.ql-editor, div[contenteditable="true"], textarea');
+          if (editable && isElementVisible(editable)) {
             composer = editable;
           }
         }
@@ -740,13 +756,13 @@
 
     for (const sel of selectors) {
       const el = document.querySelector(sel);
-      if (el && el.offsetParent !== null) return el;
+      if (el && isElementVisible(el)) return el;
     }
 
     // Text search fallback for "+ Create" or "Start a post"
     const candidates = document.querySelectorAll('button, div[role="button"], a[role="button"], div.share-box-feed-entry');
     for (const el of candidates) {
-      if (el.offsetParent !== null) {
+      if (isElementVisible(el)) {
         const text = (el.textContent || '').trim().toLowerCase();
         if (text.includes('start a post') || text.includes('create a post') || text === '+ create' || text.startsWith('+ create') || text === 'create') {
           return el;
@@ -764,9 +780,11 @@
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
-      // Check if composer editor is already visible
-      const activeComposer = document.querySelector('div.ql-editor[contenteditable="true"], div[aria-label*="What do you want to talk about"], div[aria-label*="Create a post"], div[data-test-ql-editor="true"]');
-      if (activeComposer && activeComposer.offsetParent !== null) {
+      // Check if composer editor is already visible inside modal or feed
+      const modal = document.querySelector('div[role="dialog"], div.share-box, div.artdeco-modal, div.share-creation-state');
+      const activeComposer = modal ? modal.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"]') : document.querySelector('div.ql-editor[contenteditable="true"], div[aria-label*="What do you want to talk about"], div[aria-label*="Create a post"], div[data-test-ql-editor="true"]');
+
+      if (activeComposer && isElementVisible(activeComposer)) {
         clearInterval(interval);
         return;
       }
@@ -774,8 +792,7 @@
       // Look for "Start a post" or "+ Create" trigger buttons
       const triggerBtn = findLinkedInTriggerButton();
       if (triggerBtn) {
-        triggerBtn.click();
-        clearInterval(interval);
+        clickElement(triggerBtn);
       }
 
       if (attempts >= 20) {
