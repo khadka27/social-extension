@@ -4,32 +4,36 @@
  * cross-origin URL fetching, and metadata parsing.
  */
 
+const chromeApi = typeof chrome !== 'undefined' && chrome.runtime ? chrome : (typeof browser !== 'undefined' ? browser : null);
+
 try {
   importScripts('extractor.js', 'social-share.js');
 } catch (e) {
-  console.log('Scripts imported in service worker');
+  console.log('Scripts loaded in extension environment');
 }
 
 // Initialize context menus on installation
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: 'socialshare-autopost',
-    title: '⚡ Instant Auto-Post to Social Media',
-    contexts: ['page']
-  });
+if (chromeApi && chromeApi.runtime && chromeApi.runtime.onInstalled) {
+  chromeApi.runtime.onInstalled.addListener(() => {
+    chrome.contextMenus.create({
+      id: 'socialshare-autopost',
+      title: '⚡ Instant Auto-Post to Social Media',
+      contexts: ['page']
+    });
 
-  chrome.contextMenus.create({
-    id: 'socialshare-page',
-    title: 'Share Page with SocialShare',
-    contexts: ['page']
-  });
+    chrome.contextMenus.create({
+      id: 'socialshare-page',
+      title: 'Share Page with SocialShare',
+      contexts: ['page']
+    });
 
-  chrome.contextMenus.create({
-    id: 'socialshare-link',
-    title: 'Share Link with SocialShare',
-    contexts: ['link']
+    chrome.contextMenus.create({
+      id: 'socialshare-link',
+      title: 'Share Link with SocialShare',
+      contexts: ['link']
+    });
   });
-});
+}
 
 // Handle keyboard shortcuts (e.g. Alt+Shift+S)
 chrome.commands.onCommand.addListener(async (command) => {

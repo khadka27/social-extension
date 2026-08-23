@@ -101,15 +101,17 @@
     return null;
   }
 
-  // Listen for pending post
-  chrome.storage.local.get(['pendingSocialPost', 'pendingFacebookPost'], (res) => {
-    const postData = res.pendingSocialPost || res.pendingFacebookPost;
+  const chromeApi = typeof chrome !== 'undefined' && chrome.storage ? chrome : (typeof browser !== 'undefined' ? browser : null);
+
+  /**
+   * Processes a pending post payload and triggers UI helpers & composer injection
+   */
+  function processPendingPost(postData) {
     if (!postData) return;
 
     const now = Date.now();
-    // Only process if created within the last 180 seconds
-    if (now - (postData.timestamp || 0) > 180000) {
-      chrome.storage.local.remove(['pendingSocialPost', 'pendingFacebookPost']);
+    // Only process if created within the last 300 seconds
+    if (now - (postData.timestamp || 0) > 300000) {
       return;
     }
 
@@ -144,7 +146,29 @@
 
     // Start polling to find the composer
     attemptComposerInjection(currentPlat, textToInject, postData);
-  });
+  }
+
+  // 1. Check storage on initial script load
+  if (chromeApi && chromeApi.storage && chromeApi.storage.local) {
+    chromeApi.storage.local.get(['pendingSocialPost', 'pendingFacebookPost'], (res) => {
+      if (res) {
+        processPendingPost(res.pendingSocialPost || res.pendingFacebookPost);
+      }
+    });
+
+    // 2. Listen live for storage updates (Fixes Brave tab pre-rendering & concurrent tab shares)
+    if (chromeApi.storage.onChanged) {
+      chromeApi.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local') {
+          if (changes.pendingSocialPost && changes.pendingSocialPost.newValue) {
+            processPendingPost(changes.pendingSocialPost.newValue);
+          } else if (changes.pendingFacebookPost && changes.pendingFacebookPost.newValue) {
+            processPendingPost(changes.pendingFacebookPost.newValue);
+          }
+        }
+      });
+    }
+  }
 
   /**
    * Highlights TikTok dropzone with visual animation
@@ -399,6 +423,10 @@
   function isElementVisible(el) {
     if (!el) return false;
     if (el.getAttribute('aria-hidden') === 'true') return false;
+    // Elements inside active modal dialogs are always considered visible
+    if (el.closest && el.closest('div[role="dialog"], div.artdeco-modal, div.share-box, div.share-creation-state, .editor-content')) {
+      return true;
+    }
     try {
       const rect = el.getBoundingClientRect();
       if (rect.width > 0 || rect.height > 0 || (el.getClientRects && el.getClientRects().length > 0)) {
@@ -411,7 +439,7 @@
   /**
    * Polls DOM to find active composer element on the current platform
    */
-  function attemptComposerInjection(platform, text, postData) {
+  function attemptComposerInjection(platform, text, postData, forceOverwrite = false) {
     const selectors = PLATFORM_SELECTORS[platform] || [];
     let attempts = 0;
     const maxAttempts = 60;
@@ -440,7 +468,6 @@
         }
 
         if (descEl && postData) {
-          // Format YouTube description: summary + article URL + hashtags (without repeating the title at the top)
           const descToInject = postData.description
             ? [
                 postData.description,
@@ -458,7 +485,6 @@
 
         if (titleUpdated && descUpdated) {
           clearInterval(interval);
-          chrome.storage.local.remove(['pendingSocialPost', 'pendingFacebookPost']);
           return;
         }
       }
@@ -487,13 +513,18 @@
       }
 
       if (composer) {
-        clearInterval(interval);
-        injectTextIntoComposer(composer, text, platform, false, postData);
-        chrome.storage.local.remove(['pendingSocialPost', 'pendingFacebookPost']);
+        injectTextIntoComposer(composer, text, platform, forceOverwrite, postData);
+        const currentText = (composer.textContent || '').trim();
+        const snippet = text.slice(0, 15).trim();
+        if (currentText.length > 5 && currentText.includes(snippet)) {
+          clearInterval(interval);
+        } else if (attempts >= maxAttempts) {
+          clearInterval(interval);
+        }
       } else if (attempts >= maxAttempts) {
         clearInterval(interval);
       }
-    }, 600);
+    }, 400);
   }
 
   /**
@@ -540,29 +571,51 @@
   function injectTextIntoComposer(composer, text, platform, forceOverwrite = false, postData = null) {
     if (!composer || !text) return;
 
-    if (composer.textContent && composer.textContent.trim() === text.trim()) {
+    if (!forceOverwrite && composer.textContent && composer.textContent.trim() === text.trim()) {
       return;
     }
 
-    if (!forceOverwrite && composer.textContent && composer.textContent.trim().length > 15) {
+    if (!forceOverwrite && composer.textContent && composer.textContent.trim().length > 25 && !composer.textContent.toLowerCase().includes('share your thoughts')) {
       return;
     }
 
-    // Ensure element is editable
-    const isEditable = composer.getAttribute('contenteditable') === 'true' || composer.tagName === 'TEXTAREA' || composer.tagName === 'INPUT';
+    // Ensure element is editable using standard isContentEditable property or element type
+    const isEditable = composer.isContentEditable || 
+                       composer.getAttribute('contenteditable') === 'true' || 
+                       composer.getAttribute('contenteditable') === '' || 
+                       composer.tagName === 'TEXTAREA' || 
+                       composer.tagName === 'INPUT' || 
+                       composer.classList.contains('ql-editor') ||
+                       composer.classList.contains('editor-content');
     if (!isEditable) return;
 
     try {
       composer.focus();
+      if (typeof composer.click === 'function') {
+        composer.click();
+      }
 
-      // Try execCommand insertText first if composer is focused
-      let success = false;
+      // Method A: Synthesize Clipboard paste event for Quill / Draft.js / ProseMirror
+      let pastedSuccess = false;
       try {
-        success = document.execCommand('insertText', false, text);
+        const dt = new DataTransfer();
+        dt.setData('text/plain', text);
+        const pasteEvt = new ClipboardEvent('paste', {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: dt
+        });
+        pastedSuccess = composer.dispatchEvent(pasteEvt);
+      } catch (pe) {}
+
+      // Method B: Try document.execCommand('insertText')
+      let execSuccess = false;
+      try {
+        execSuccess = document.execCommand('insertText', false, text);
       } catch (ie) {}
 
-      // Direct DOM insertion fallback for Quill / DraftJS / ProseMirror
-      if (!success || !composer.textContent || composer.textContent.trim() !== text.trim()) {
+      // Method C: Direct DOM insertion fallback (Quill / DraftJS / ProseMirror paragraphs)
+      if ((!pastedSuccess && !execSuccess) || !composer.textContent || composer.textContent.trim() !== text.trim()) {
         composer.innerHTML = '';
         const lines = text.split('\n');
         lines.forEach((line) => {
@@ -574,6 +627,13 @@
           }
           composer.appendChild(p);
         });
+      }
+
+      // Remove Quill placeholder overlay if present inside modal
+      const modal = composer.closest('div[role="dialog"], div.artdeco-modal, div.share-box, div.share-creation-state') || document;
+      const placeholder = modal.querySelector('.ql-placeholder, [data-placeholder]');
+      if (placeholder && placeholder !== composer) {
+        placeholder.style.display = 'none';
       }
 
       // Clear any selection ranges so entire page or text is never left highlighted
@@ -687,19 +747,21 @@
     const helper = document.createElement('div');
     helper.id = 'socialshare-twitter-helper';
     helper.style.cssText = `
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 310px;
-      background: #12151C;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
-      padding: 14px;
-      color: #F1F5F9;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.65), 0 0 1px rgba(255, 255, 255, 0.2);
-      z-index: 9999999;
-      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: fixed !important;
+      bottom: 24px !important;
+      right: 24px !important;
+      width: 310px !important;
+      background: #12151C !important;
+      border: 1px solid rgba(255, 255, 255, 0.18) !important;
+      border-radius: 12px !important;
+      padding: 14px !important;
+      color: #F1F5F9 !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.85), 0 0 1px rgba(255, 255, 255, 0.3) !important;
+      z-index: 2147483647 !important;
+      pointer-events: auto !important;
+      isolation: isolate !important;
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     `;
 
     const titleSnippet = postData.title ? (postData.title.slice(0, 40) + (postData.title.length > 40 ? '...' : '')) : 'Tweet Post';
@@ -737,7 +799,7 @@
       </div>
     `;
 
-    document.body.appendChild(helper);
+    (document.fullscreenElement || document.documentElement || document.body).appendChild(helper);
 
     helper.querySelector('#close-twitter-helper-btn').addEventListener('click', () => helper.remove());
 
@@ -768,28 +830,26 @@
   function findLinkedInTriggerButton() {
     const selectors = [
       'button[aria-label*="Start a post" i]',
-      'button[aria-label*="Create" i]',
       'button.share-mb__button',
       '.share-box-feed-entry__trigger',
       'button.artdeco-button[aria-label*="post" i]',
       'div.share-box-feed-entry button',
-      '.share-box-feed-entry',
       '.org-admin-page-posts__create-post-btn',
       'button.org-admin-header__create-btn',
-      'a[aria-label*="Create" i]'
+      'button[aria-label*="Create" i]'
     ];
 
     for (const sel of selectors) {
       const el = document.querySelector(sel);
-      if (el && isElementVisible(el)) return el;
+      if (el && el.tagName !== 'A' && isElementVisible(el)) return el;
     }
 
-    // Text search fallback for "+ Create" or "Start a post"
-    const candidates = document.querySelectorAll('button, div[role="button"], a[role="button"], div.share-box-feed-entry');
+    // Text search fallback for buttons ONLY (never <a> navigation links)
+    const candidates = document.querySelectorAll('button, div[role="button"], div.share-box-feed-entry');
     for (const el of candidates) {
-      if (isElementVisible(el)) {
+      if (el.tagName !== 'A' && isElementVisible(el)) {
         const text = (el.textContent || '').trim().toLowerCase();
-        if (text.includes('start a post') || text.includes('create a post') || text === '+ create' || text.startsWith('+ create') || text === 'create') {
+        if (text.includes('start a post') || text.includes('create a post') || text === '+ create' || text.startsWith('+ create')) {
           return el;
         }
       }
@@ -802,28 +862,29 @@
    * Auto-triggers LinkedIn post dialog on feed or company page admin if not open
    */
   function handleLinkedInAutoTrigger() {
+    let hasClicked = false;
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
-      // Check if composer editor is already visible inside modal or feed
+      // Check if modal or composer is already open
       const modal = document.querySelector('div[role="dialog"], div.share-box, div.artdeco-modal, div.share-creation-state');
-      const activeComposer = modal ? modal.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"]') : document.querySelector('div.ql-editor[contenteditable="true"], div[aria-label*="What do you want to talk about"], div[aria-label*="Create a post"], div[data-test-ql-editor="true"]');
-
-      if (activeComposer && isElementVisible(activeComposer)) {
+      if (modal) {
         clearInterval(interval);
         return;
       }
 
-      // Look for "Start a post" or "+ Create" trigger buttons
-      const triggerBtn = findLinkedInTriggerButton();
-      if (triggerBtn) {
-        clickElement(triggerBtn);
+      if (!hasClicked) {
+        const triggerBtn = findLinkedInTriggerButton();
+        if (triggerBtn) {
+          hasClicked = true;
+          clickElement(triggerBtn);
+        }
       }
 
-      if (attempts >= 20) {
+      if (attempts >= 8 || hasClicked) {
         clearInterval(interval);
       }
-    }, 600);
+    }, 500);
   }
 
   /**
@@ -839,19 +900,21 @@
     const helper = document.createElement('div');
     helper.id = 'socialshare-linkedin-helper';
     helper.style.cssText = `
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 320px;
-      background: #12151C;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
-      padding: 14px;
-      color: #F1F5F9;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.65), 0 0 1px rgba(255, 255, 255, 0.2);
-      z-index: 9999999;
-      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: fixed !important;
+      bottom: 24px !important;
+      right: 24px !important;
+      width: 320px !important;
+      background: #12151C !important;
+      border: 1px solid rgba(255, 255, 255, 0.18) !important;
+      border-radius: 12px !important;
+      padding: 14px !important;
+      color: #F1F5F9 !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.85), 0 0 1px rgba(255, 255, 255, 0.3) !important;
+      z-index: 2147483647 !important;
+      pointer-events: auto !important;
+      isolation: isolate !important;
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     `;
 
     const titleSnippet = postData.title ? (postData.title.slice(0, 40) + (postData.title.length > 40 ? '...' : '')) : 'Article Post';
@@ -859,6 +922,8 @@
 
     const badgeLabel = isCompanyPage ? 'LinkedIn Page Admin' : 'LinkedIn Personal Feed';
     const badgeColor = isCompanyPage ? '#38BDF8' : '#0A66C2';
+
+    const imgSource = (postData && (postData.imageDataUrl || postData.image)) || '';
 
     helper.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
@@ -887,6 +952,18 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
           Start Post & Auto-Fill
         </button>
+
+        ${imgSource ? `
+          <button id="linkedin-attach-img-btn" style="background: #1E293B; border: 1px solid rgba(255, 255, 255, 0.1); color: #E2E8F0; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            Attach Cover Photo
+          </button>
+          <button id="linkedin-download-img-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #38BDF8; padding: 5px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download Image File
+          </button>
+        ` : ''}
+
         <button id="linkedin-copy-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #94A3B8; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
           Copy Full Post Text
@@ -894,7 +971,7 @@
       </div>
     `;
 
-    document.body.appendChild(helper);
+    (document.fullscreenElement || document.documentElement || document.body).appendChild(helper);
 
     helper.querySelector('#close-linkedin-helper-btn').addEventListener('click', () => helper.remove());
 
@@ -904,8 +981,46 @@
         clickElement(triggerBtn);
       }
       handleLinkedInAutoTrigger();
-      attemptComposerInjection(isCompanyPage ? 'linkedin_page' : 'linkedin', textToUse, postData);
+      attemptComposerInjection(isCompanyPage ? 'linkedin_page' : 'linkedin', textToUse, postData, true);
     });
+
+    const attachImgBtn = helper.querySelector('#linkedin-attach-img-btn');
+    if (attachImgBtn) {
+      attachImgBtn.addEventListener('click', () => {
+        const modal = document.querySelector('div[role="dialog"], div.share-box, div.artdeco-modal, div.share-creation-state');
+        const composer = modal ? modal.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"]') : document.querySelector('div.ql-editor[contenteditable="true"]');
+        autoAttachLinkedInImage(composer, imgSource);
+      });
+    }
+
+    const downloadImgBtn = helper.querySelector('#linkedin-download-img-btn');
+    if (downloadImgBtn) {
+      downloadImgBtn.addEventListener('click', async () => {
+        let blob = null;
+        if (imgSource.startsWith('data:')) {
+          blob = dataUrlToBlob(imgSource);
+        } else if (imgSource.startsWith('http')) {
+          try {
+            const res = await fetch(imgSource);
+            if (res.ok) blob = await res.blob();
+          } catch (e) {}
+        }
+        if (!blob) return;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'article-cover.jpg';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        downloadImgBtn.textContent = 'Downloaded!';
+        setTimeout(() => {
+          downloadImgBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download Image File`;
+        }, 2000);
+      });
+    }
 
     helper.querySelector('#linkedin-copy-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(textToUse);
@@ -959,7 +1074,15 @@
     const dt = new DataTransfer();
     dt.items.add(file);
 
-    // Method 1: Synthesize paste event directly on composer
+    // 1. Click LinkedIn's "Add media" / "Photo" button if present to open photo picker
+    const mediaBtn = document.querySelector(
+      'button[aria-label*="Add media" i], button[aria-label*="Add a photo" i], button[aria-label*="Add photo" i], button.share-promoted-detours-icon'
+    );
+    if (mediaBtn && isElementVisible(mediaBtn)) {
+      clickElement(mediaBtn);
+    }
+
+    // 2. Synthesize paste event directly on composer
     if (composer) {
       composer.focus();
       try {

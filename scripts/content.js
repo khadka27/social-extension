@@ -6,8 +6,11 @@
 (function () {
   'use strict';
 
+  const chromeApi = typeof chrome !== 'undefined' && chrome.runtime ? chrome : (typeof browser !== 'undefined' ? browser : null);
+  if (!chromeApi) return;
+
   // Listen for messages from popup or background script
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  chromeApi.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'EXTRACT_METADATA') {
       try {
         if (typeof SocialExtractor !== 'undefined') {
