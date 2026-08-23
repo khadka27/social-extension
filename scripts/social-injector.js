@@ -548,17 +548,21 @@
       return;
     }
 
-    selectComposerContentsOnly(composer);
+    // Ensure element is editable
+    const isEditable = composer.getAttribute('contenteditable') === 'true' || composer.tagName === 'TEXTAREA' || composer.tagName === 'INPUT';
+    if (!isEditable) return;
 
     try {
-      // 1. Delete existing contents inside composer selection only
-      document.execCommand('delete', false, null);
+      composer.focus();
 
-      // 2. Insert new clean text
-      const success = document.execCommand('insertText', false, text);
+      // Try execCommand insertText first if composer is focused
+      let success = false;
+      try {
+        success = document.execCommand('insertText', false, text);
+      } catch (ie) {}
 
+      // Direct DOM insertion fallback for Quill / DraftJS / ProseMirror
       if (!success || !composer.textContent || composer.textContent.trim() !== text.trim()) {
-        // Fallback insertion
         composer.innerHTML = '';
         const lines = text.split('\n');
         lines.forEach((line) => {
@@ -572,7 +576,7 @@
         });
       }
 
-      // Clear selection ranges so entire page is not highlighted
+      // Clear any selection ranges so entire page or text is never left highlighted
       try {
         const sel = window.getSelection();
         if (sel) sel.removeAllRanges();
