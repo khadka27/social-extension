@@ -127,6 +127,11 @@
       renderLinkedInFloatingHelper(postData);
     }
 
+    // Special Twitter / X Floating Helper
+    if (currentPlat === 'twitter') {
+      renderTwitterFloatingHelper(postData);
+    }
+
     // Special YouTube Studio Trigger & Assistant
     if (currentPlat === 'youtube') {
       handleYouTubeStudioAutoTrigger(postData);
@@ -557,9 +562,158 @@
       }
       const label = platform === 'linkedin_page' ? 'Auto-filled LinkedIn Page Post & Attached Image!' : 'Auto-filled LinkedIn Post & Attached Image!';
       showAutoFillBadge(platform, label);
+    } else if (platform === 'twitter') {
+      const imageToAttach = (postData && (postData.imageDataUrl || postData.image)) || '';
+      if (imageToAttach) {
+        autoAttachTwitterImage(composer, imageToAttach);
+        showAutoFillBadge(platform, 'Auto-filled Tweet & Attached Cover Image!');
+      } else {
+        showAutoFillBadge(platform);
+      }
     } else {
       showAutoFillBadge(platform);
     }
+  }
+
+  /**
+   * Automatically attaches an image to X (Twitter) tweet composer
+   */
+  async function autoAttachTwitterImage(composer, imageSource) {
+    if (!imageSource) return;
+
+    let blob = null;
+    if (imageSource.startsWith('data:')) {
+      blob = dataUrlToBlob(imageSource);
+    } else if (imageSource.startsWith('http')) {
+      try {
+        const response = await fetch(imageSource);
+        if (response.ok) blob = await response.blob();
+      } catch (e) {}
+    }
+
+    if (!blob) return;
+
+    const ext = blob.type.includes('png') ? 'png' : 'jpg';
+    const file = new File([blob], `article-photo.${ext}`, { type: blob.type || 'image/jpeg' });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+
+    // Method 1: Target X (Twitter) hidden media file inputs (input[data-testid="fileInput"])
+    const attachToTwitterFileInputs = () => {
+      const fileInputs = document.querySelectorAll(
+        'input[data-testid="fileInput"], input[type="file"][accept*="image"], input[type="file"]'
+      );
+      for (const input of fileInputs) {
+        try {
+          input.files = dt.files;
+          input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+          input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        } catch (e) {}
+      }
+    };
+
+    // Method 2: Synthesize paste event directly on composer
+    if (composer) {
+      composer.focus();
+      try {
+        const pasteEvent = new ClipboardEvent('paste', {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: dt
+        });
+        composer.dispatchEvent(pasteEvent);
+      } catch (e) {}
+    }
+
+    attachToTwitterFileInputs();
+    setTimeout(attachToTwitterFileInputs, 300);
+    setTimeout(attachToTwitterFileInputs, 800);
+    setTimeout(attachToTwitterFileInputs, 1500);
+  }
+
+  /**
+   * Renders a floating helper assistant on X (Twitter)
+   */
+  function renderTwitterFloatingHelper(postData) {
+    const existing = document.getElementById('socialshare-twitter-helper');
+    if (existing) existing.remove();
+
+    const helper = document.createElement('div');
+    helper.id = 'socialshare-twitter-helper';
+    helper.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 310px;
+      background: #12151C;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 14px;
+      color: #F1F5F9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.65), 0 0 1px rgba(255, 255, 255, 0.2);
+      z-index: 9999999;
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    `;
+
+    const titleSnippet = postData.title ? (postData.title.slice(0, 40) + (postData.title.length > 40 ? '...' : '')) : 'Tweet Post';
+    const textToUse = postData.text || `${postData.title || ''}\n\n${postData.description || ''}`;
+    const imgSource = (postData && (postData.imageDataUrl || postData.image)) || '';
+
+    helper.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-weight: 600; font-size: 12.5px; color: #F1F5F9; display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#F1F5F9"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          𝕏 (Twitter) Auto-Publisher
+        </span>
+        <button id="close-twitter-helper-btn" style="background: none; border: none; color: #64748B; cursor: pointer; font-size: 16px; padding: 0 4px;">&times;</button>
+      </div>
+
+      <p style="font-size: 11px; color: #94A3B8; margin: 0 0 10px 0; line-height: 1.35;">
+        ${escapeHtml(titleSnippet)}
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <button id="twitter-autofill-btn" style="background: #2563EB; color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 7px 12px; border-radius: 6px; font-weight: 600; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          Auto-Fill Tweet & Attach Photo
+        </button>
+        ${imgSource ? `
+          <button id="twitter-attach-img-btn" style="background: #1A1D27; border: 1px solid rgba(255, 255, 255, 0.1); color: #E2E8F0; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            Re-Attach Cover Photo
+          </button>
+        ` : ''}
+        <button id="twitter-copy-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #94A3B8; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Copy Tweet Text
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(helper);
+
+    helper.querySelector('#close-twitter-helper-btn').addEventListener('click', () => helper.remove());
+
+    helper.querySelector('#twitter-autofill-btn').addEventListener('click', () => {
+      attemptComposerInjection('twitter', textToUse, postData);
+    });
+
+    const attachBtn = helper.querySelector('#twitter-attach-img-btn');
+    if (attachBtn) {
+      attachBtn.addEventListener('click', () => {
+        const composer = document.querySelector('div[data-testid="tweetTextarea_0"], div[role="textbox"]');
+        autoAttachTwitterImage(composer, imgSource);
+      });
+    }
+
+    helper.querySelector('#twitter-copy-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(textToUse);
+      helper.querySelector('#twitter-copy-btn').textContent = 'Copied to Clipboard!';
+      setTimeout(() => {
+        helper.querySelector('#twitter-copy-btn').innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy Tweet Text`;
+      }, 2000);
+    });
   }
 
   /**
