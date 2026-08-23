@@ -39,7 +39,7 @@ console.log('🧪 Running SocialShare Extension Tests...\n');
   // Test LinkedIn Page with target
   const pageMockData = { ...mockData, pageTarget: 'acme-corp' };
   const linkedinPageUrl = SocialShare.PLATFORMS.linkedin_page.getUrl(pageMockData);
-  assert.ok(linkedinPageUrl.includes('linkedin.com/company/acme-corp/admin/feed/'));
+  assert.ok(linkedinPageUrl.includes('linkedin.com/company/acme-corp/admin/page-posts/published/'));
   console.log('✓ LinkedIn Page Share URL valid');
 
   // Test WhatsApp

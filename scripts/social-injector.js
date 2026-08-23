@@ -90,7 +90,7 @@
     const path = window.location.pathname.toLowerCase();
     if (host.includes('facebook.com')) return 'facebook';
     if (host.includes('linkedin.com')) {
-      if (pendingPlat === 'linkedin_page' || path.includes('/company/') || path.includes('/school/') || path.includes('/admin/feed')) {
+      if (pendingPlat === 'linkedin_page' || path.includes('/company/') || path.includes('/school/') || path.includes('/admin/') || path.includes('/page-posts/')) {
         return 'linkedin_page';
       }
       return 'linkedin';
@@ -532,6 +532,42 @@
   }
 
   /**
+   * Helper that finds the "Start a post" or "+ Create" button on LinkedIn Page Admin or Feed
+   */
+  function findLinkedInTriggerButton() {
+    const selectors = [
+      'button[aria-label*="Start a post" i]',
+      'button[aria-label*="Create" i]',
+      'button.share-mb__button',
+      '.share-box-feed-entry__trigger',
+      'button.artdeco-button[aria-label*="post" i]',
+      'div.share-box-feed-entry button',
+      '.share-box-feed-entry',
+      '.org-admin-page-posts__create-post-btn',
+      'button.org-admin-header__create-btn',
+      'a[aria-label*="Create" i]'
+    ];
+
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el && el.offsetParent !== null) return el;
+    }
+
+    // Text search fallback for "+ Create" or "Start a post"
+    const candidates = document.querySelectorAll('button, div[role="button"], a[role="button"], div.share-box-feed-entry');
+    for (const el of candidates) {
+      if (el.offsetParent !== null) {
+        const text = (el.textContent || '').trim().toLowerCase();
+        if (text.includes('start a post') || text.includes('create a post') || text === '+ create' || text.startsWith('+ create') || text === 'create') {
+          return el;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Auto-triggers LinkedIn post dialog on feed or company page admin if not open
    */
   function handleLinkedInAutoTrigger() {
@@ -539,25 +575,23 @@
     const interval = setInterval(() => {
       attempts++;
       // Check if composer editor is already visible
-      const activeComposer = document.querySelector('div.ql-editor[contenteditable="true"], div[aria-label*="What do you want to talk about"], div[aria-label*="Create a post"]');
+      const activeComposer = document.querySelector('div.ql-editor[contenteditable="true"], div[aria-label*="What do you want to talk about"], div[aria-label*="Create a post"], div[data-test-ql-editor="true"]');
       if (activeComposer && activeComposer.offsetParent !== null) {
         clearInterval(interval);
         return;
       }
 
-      // Look for "Start a post" / "Create a post" trigger buttons
-      const triggerBtn = document.querySelector(
-        'button.share-mb__button, button[aria-label*="Start a post"], button[aria-label*="Create a post"], .share-box-feed-entry__trigger, button.artdeco-button[aria-label*="post"], div.share-box-feed-entry button, .share-box-feed-entry'
-      );
-      if (triggerBtn && triggerBtn.offsetParent !== null) {
+      // Look for "Start a post" or "+ Create" trigger buttons
+      const triggerBtn = findLinkedInTriggerButton();
+      if (triggerBtn) {
         triggerBtn.click();
         clearInterval(interval);
       }
 
-      if (attempts >= 15) {
+      if (attempts >= 20) {
         clearInterval(interval);
       }
-    }, 700);
+    }, 600);
   }
 
   /**

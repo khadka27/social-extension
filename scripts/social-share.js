@@ -173,7 +173,7 @@
             return target;
           }
           const cleanSlug = target.replace(/^\/?(company|school|page)\//i, '').replace(/\/.*$/, '');
-          return `https://www.linkedin.com/company/${cleanSlug}/admin/feed/`;
+          return `https://www.linkedin.com/company/${cleanSlug}/admin/page-posts/published/?share=true`;
         }
         return `https://www.linkedin.com/feed/?shareActive=true&isPagePost=true&text=${encodeURIComponent(text)}`;
       }
