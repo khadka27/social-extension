@@ -494,8 +494,9 @@
     }
 
     if (platform === 'linkedin') {
-      if (postData && postData.image) {
-        autoAttachLinkedInImage(composer, postData.image);
+      const imageToAttach = (postData && (postData.imageDataUrl || postData.image)) || '';
+      if (imageToAttach) {
+        autoAttachLinkedInImage(composer, imageToAttach);
       }
       showAutoFillBadge(platform, 'Auto-filled LinkedIn Post & Attached Image!');
     } else {
@@ -504,45 +505,94 @@
   }
 
   /**
+   * Helper to convert Base64 Data URL to Blob without network fetch
+   */
+  function dataUrlToBlob(dataUrl) {
+    if (!dataUrl || !dataUrl.startsWith('data:')) return null;
+    try {
+      const arr = dataUrl.split(',');
+      const mime = (arr[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
    * Automatically attaches an image to LinkedIn post composer
    */
-  async function autoAttachLinkedInImage(composer, imageUrl) {
-    if (!imageUrl || !imageUrl.startsWith('http')) return;
+  async function autoAttachLinkedInImage(composer, imageSource) {
+    if (!imageSource) return;
 
-    try {
-      const response = await fetch(imageUrl);
-      if (!response.ok) return;
-      const blob = await response.blob();
-      const file = new File([blob], 'article-preview.jpg', { type: blob.type || 'image/jpeg' });
+    let blob = null;
+    if (imageSource.startsWith('data:')) {
+      blob = dataUrlToBlob(imageSource);
+    } else if (imageSource.startsWith('http')) {
+      try {
+        const response = await fetch(imageSource);
+        if (response.ok) blob = await response.blob();
+      } catch (e) {}
+    }
 
-      const dt = new DataTransfer();
-      dt.items.add(file);
+    if (!blob) return;
 
-      // Method 1: Synthesize paste event directly on composer
-      if (composer) {
+    const ext = blob.type.includes('png') ? 'png' : 'jpg';
+    const file = new File([blob], `article-cover.${ext}`, { type: blob.type || 'image/jpeg' });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+
+    // Method 1: Synthesize paste event directly on composer
+    if (composer) {
+      composer.focus();
+      try {
         const pasteEvent = new ClipboardEvent('paste', {
           bubbles: true,
           cancelable: true,
           clipboardData: dt
         });
         composer.dispatchEvent(pasteEvent);
-      }
-
-      // Method 2: Target LinkedIn hidden file input
-      setTimeout(() => {
-        const fileInputs = document.querySelectorAll('input[type="file"][accept*="image"], input[type="file"].share-creation-state__file-input, input[type="file"]');
-        for (const input of fileInputs) {
-          try {
-            input.files = dt.files;
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            break;
-          } catch (e) {}
-        }
-      }, 500);
-    } catch (e) {
-      // Fallback if CORS prevents direct fetch
+      } catch (e) {}
     }
+
+    // Method 2: Target LinkedIn hidden/visible file inputs
+    const attachToInputs = () => {
+      const fileInputs = document.querySelectorAll(
+        'input[type="file"][accept*="image"], input[type="file"].share-creation-state__file-input, input[type="file"]'
+      );
+      for (const input of fileInputs) {
+        try {
+          input.files = dt.files;
+          input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+          input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        } catch (e) {}
+      }
+    };
+
+    attachToInputs();
+    setTimeout(attachToInputs, 400);
+    setTimeout(attachToInputs, 1000);
+
+    // Method 3: Automatically advance media editor if LinkedIn opens photo preview ("Next" / "Done")
+    let advanceAttempts = 0;
+    const advanceInterval = setInterval(() => {
+      advanceAttempts++;
+      const nextBtn = document.querySelector(
+        'button.share-box-footer__primary-btn, button[aria-label="Next"], button[aria-label="Done"], button[aria-label="Save"], .media-editor__done-btn, .image-editor-toolbar__action-button'
+      );
+      if (nextBtn && nextBtn.offsetParent !== null) {
+        nextBtn.click();
+        clearInterval(advanceInterval);
+      }
+      if (advanceAttempts >= 12) {
+        clearInterval(advanceInterval);
+      }
+    }, 350);
   }
 
   /**

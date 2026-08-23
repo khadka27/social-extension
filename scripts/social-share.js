@@ -156,6 +156,29 @@
       }
     },
 
+    linkedin_page: {
+      name: 'LinkedIn Page',
+      icon: 'linkedin',
+      color: '#004182',
+      getUrl: (data) => {
+        let text = data.title || '';
+        if (data.description) text += `\n\n${data.description}`;
+        if (data.url) text += `\n\n${data.url}`;
+        if (data.tags && data.tags.length > 0) text += `\n\n${data.tags.join(' ')}`;
+        
+        let target = data.pageTarget || '';
+        if (target) {
+          target = target.trim();
+          if (target.startsWith('http://') || target.startsWith('https://')) {
+            return target;
+          }
+          const cleanSlug = target.replace(/^\/?(company|school|page)\//i, '').replace(/\/.*$/, '');
+          return `https://www.linkedin.com/company/${cleanSlug}/admin/feed/`;
+        }
+        return `https://www.linkedin.com/feed/?shareActive=true&isPagePost=true&text=${encodeURIComponent(text)}`;
+      }
+    },
+
     facebook: {
       name: 'Facebook',
       icon: 'facebook',

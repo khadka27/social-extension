@@ -732,20 +732,43 @@
   }
 
   /**
+   * Helper to convert an image URL to a self-contained Base64 Data URL
+   */
+  async function imageUrlToBase64(url) {
+    if (!url) return '';
+    if (url.startsWith('data:')) return url;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return '';
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      return '';
+    }
+  }
+
+  /**
    * Shares to a single social media platform
    */
-  function shareToPlatform(platformKey, customTitle = null) {
+  async function shareToPlatform(platformKey, customTitle = null) {
     syncInputsToState();
     const platform = SocialShare.PLATFORMS[platformKey];
     if (!platform) return;
 
     const titleToUse = customTitle || state.title;
+    const targetImage = state.image || (state.images && state.images[0]) || '';
+    const imageDataUrl = await imageUrlToBase64(targetImage);
 
     const shareUrl = platform.getUrl({
       title: titleToUse,
       description: state.description,
       url: state.url,
-      image: state.image,
+      image: targetImage,
       siteName: state.siteName,
       author: state.author,
       tags: SocialShare.formatHashtags(state.tags)
@@ -761,7 +784,8 @@
           title: titleToUse,
           description: state.description,
           url: state.url,
-          image: state.image || (state.images && state.images[0]) || '',
+          image: targetImage,
+          imageDataUrl: imageDataUrl,
           images: state.images || [],
           timestamp: Date.now()
         },
@@ -769,7 +793,8 @@
           text: fullPost,
           title: titleToUse,
           description: state.description,
-          image: state.image || (state.images && state.images[0]) || '',
+          image: targetImage,
+          imageDataUrl: imageDataUrl,
           timestamp: Date.now()
         }
       });
