@@ -456,9 +456,20 @@
         if (composer) break;
       }
 
+      // Universal fallback for LinkedIn modal dialogs
+      if (!composer && (platform === 'linkedin' || platform === 'linkedin_page')) {
+        const modal = document.querySelector('div[role="dialog"], div.share-box, div.share-creation-state, div.artdeco-modal, div.editor-content');
+        if (modal) {
+          const editable = modal.querySelector('div[contenteditable="true"], textarea');
+          if (editable && editable.offsetParent !== null) {
+            composer = editable;
+          }
+        }
+      }
+
       if (composer) {
         clearInterval(interval);
-        injectTextIntoComposer(composer, text, platform);
+        injectTextIntoComposer(composer, text, platform, false, postData);
         chrome.storage.local.remove(['pendingSocialPost', 'pendingFacebookPost']);
       } else if (attempts >= maxAttempts) {
         clearInterval(interval);
@@ -467,9 +478,29 @@
   }
 
   /**
+   * Helper that dispatches focus, mousedown, mouseup, and click events to trigger web components
+   */
+  function clickElement(el) {
+    if (!el) return false;
+    try {
+      el.focus();
+      const opts = { bubbles: true, cancelable: true, view: window, composed: true };
+      el.dispatchEvent(new MouseEvent('mousedown', opts));
+      el.dispatchEvent(new MouseEvent('mouseup', opts));
+      el.dispatchEvent(new MouseEvent('click', opts));
+      if (typeof el.click === 'function') {
+        el.click();
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Injects formatted text into contenteditable / textarea and triggers React/Vue/DraftJS/Polymer events
    */
-  function injectTextIntoComposer(composer, text, platform, forceOverwrite = false) {
+  function injectTextIntoComposer(composer, text, platform, forceOverwrite = false, postData = null) {
     if (!composer || !text) return;
 
     if (composer.textContent && composer.textContent.trim() === text.trim()) {
@@ -667,8 +698,12 @@
     helper.querySelector('#close-linkedin-helper-btn').addEventListener('click', () => helper.remove());
 
     helper.querySelector('#linkedin-trigger-post-btn').addEventListener('click', () => {
+      const triggerBtn = findLinkedInTriggerButton();
+      if (triggerBtn) {
+        clickElement(triggerBtn);
+      }
       handleLinkedInAutoTrigger();
-      attemptComposerInjection('linkedin', textToUse, postData);
+      attemptComposerInjection(isCompanyPage ? 'linkedin_page' : 'linkedin', textToUse, postData);
     });
 
     helper.querySelector('#linkedin-copy-btn').addEventListener('click', () => {
