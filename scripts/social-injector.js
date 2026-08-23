@@ -21,24 +21,22 @@
     ],
     linkedin: [
       'div.ql-editor[contenteditable="true"]',
-      'div[aria-label*="What do you want to talk about"]',
-      'div[aria-label*="Share your thoughts"]',
-      'div[aria-label*="Create a post"]',
-      'div[aria-label*="Start a post"]',
-      'div[data-placeholder*="What do you want to talk about"]',
-      'div[data-placeholder*="Start a post"]',
+      'div.ql-editor',
       'div[contenteditable="true"][role="textbox"]',
+      'div[contenteditable="true"][aria-label*="What do you want to talk about" i]',
+      'div[contenteditable="true"][aria-label*="Share your thoughts" i]',
+      'div[contenteditable="true"][data-placeholder*="What do you want to talk about" i]',
+      'div[contenteditable="true"][data-placeholder*="Start a post" i]',
       'div[data-test-ql-editor="true"]'
     ],
     linkedin_page: [
       'div.ql-editor[contenteditable="true"]',
-      'div[aria-label*="What do you want to talk about"]',
-      'div[aria-label*="Share your thoughts"]',
-      'div[aria-label*="Create a post"]',
-      'div[aria-label*="Start a post"]',
-      'div[data-placeholder*="What do you want to talk about"]',
-      'div[data-placeholder*="Start a post"]',
+      'div.ql-editor',
       'div[contenteditable="true"][role="textbox"]',
+      'div[contenteditable="true"][aria-label*="What do you want to talk about" i]',
+      'div[contenteditable="true"][aria-label*="Share your thoughts" i]',
+      'div[contenteditable="true"][data-placeholder*="What do you want to talk about" i]',
+      'div[contenteditable="true"][data-placeholder*="Start a post" i]',
       'div[data-test-ql-editor="true"]'
     ],
     twitter: [
@@ -519,6 +517,24 @@
   }
 
   /**
+   * Safely selects node contents ONLY inside the target composer element
+   * (Prevents document-level selectAll from selecting the entire webpage)
+   */
+  function selectComposerContentsOnly(composer) {
+    if (!composer) return;
+    try {
+      composer.focus();
+      const sel = window.getSelection();
+      if (sel) {
+        const range = document.createRange();
+        range.selectNodeContents(composer);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    } catch (e) {}
+  }
+
+  /**
    * Injects formatted text into contenteditable / textarea and triggers React/Vue/DraftJS/Polymer events
    */
   function injectTextIntoComposer(composer, text, platform, forceOverwrite = false, postData = null) {
@@ -532,17 +548,16 @@
       return;
     }
 
-    composer.focus();
+    selectComposerContentsOnly(composer);
 
     try {
-      // 1. Select all & Delete existing text (e.g. video filename placeholder on YouTube)
-      document.execCommand('selectAll', false, null);
+      // 1. Delete existing contents inside composer selection only
       document.execCommand('delete', false, null);
 
       // 2. Insert new clean text
       const success = document.execCommand('insertText', false, text);
 
-      if (!success || composer.textContent.trim() !== text.trim()) {
+      if (!success || !composer.textContent || composer.textContent.trim() !== text.trim()) {
         // Fallback insertion
         composer.innerHTML = '';
         const lines = text.split('\n');
@@ -556,6 +571,12 @@
           composer.appendChild(p);
         });
       }
+
+      // Clear selection ranges so entire page is not highlighted
+      try {
+        const sel = window.getSelection();
+        if (sel) sel.removeAllRanges();
+      } catch (e) {}
 
       // Comprehensive event dispatching for Draft.js, ProseMirror & Quill (LinkedIn, FB, Threads)
       try {

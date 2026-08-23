@@ -85,9 +85,16 @@
     }
 
     try {
-      // 1. Try standard execCommand
-      document.execCommand('selectAll', false, null);
+      // 1. Scoped selection restricted to element only
+      const sel = window.getSelection();
+      if (sel) {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
       const success = document.execCommand('insertText', false, text);
+      if (sel) sel.removeAllRanges();
 
       if (!success || !element.textContent) {
         // 2. Fallback to InputEvent
