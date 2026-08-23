@@ -199,6 +199,16 @@ function showNotification(title, message) {
   }
 }
 
+// Message listener for external URL fetching and background tasks
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'FETCH_EXTERNAL_METADATA') {
+    const url = request.url;
+    fetchExternalMetadata(url)
+      .then(data => sendResponse({ success: true, data }))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true; // Keep channel open for async fetch
+  }
+
   if (request.action === 'FETCH_IMAGE_BASE64') {
     fetchImageAsBase64(request.url)
       .then(dataUrl => sendResponse({ success: true, dataUrl }))
