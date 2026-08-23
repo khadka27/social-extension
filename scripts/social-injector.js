@@ -23,7 +23,21 @@
       'div.ql-editor[contenteditable="true"]',
       'div[aria-label*="What do you want to talk about"]',
       'div[aria-label*="Share your thoughts"]',
+      'div[aria-label*="Create a post"]',
+      'div[aria-label*="Start a post"]',
       'div[data-placeholder*="What do you want to talk about"]',
+      'div[data-placeholder*="Start a post"]',
+      'div[contenteditable="true"][role="textbox"]',
+      'div[data-test-ql-editor="true"]'
+    ],
+    linkedin_page: [
+      'div.ql-editor[contenteditable="true"]',
+      'div[aria-label*="What do you want to talk about"]',
+      'div[aria-label*="Share your thoughts"]',
+      'div[aria-label*="Create a post"]',
+      'div[aria-label*="Start a post"]',
+      'div[data-placeholder*="What do you want to talk about"]',
+      'div[data-placeholder*="Start a post"]',
       'div[contenteditable="true"][role="textbox"]',
       'div[data-test-ql-editor="true"]'
     ],
@@ -71,10 +85,16 @@
   };
 
   // Determine current platform
-  function detectCurrentPlatform() {
+  function detectCurrentPlatform(pendingPlat) {
     const host = window.location.hostname.toLowerCase();
+    const path = window.location.pathname.toLowerCase();
     if (host.includes('facebook.com')) return 'facebook';
-    if (host.includes('linkedin.com')) return 'linkedin';
+    if (host.includes('linkedin.com')) {
+      if (pendingPlat === 'linkedin_page' || path.includes('/company/') || path.includes('/school/') || path.includes('/admin/feed')) {
+        return 'linkedin_page';
+      }
+      return 'linkedin';
+    }
     if (host.includes('twitter.com') || host.includes('x.com')) return 'twitter';
     if (host.includes('threads.net')) return 'threads';
     if (host.includes('reddit.com')) return 'reddit';
@@ -95,11 +115,17 @@
       return;
     }
 
-    const currentPlat = detectCurrentPlatform();
+    const currentPlat = detectCurrentPlatform(postData.platform);
     if (!currentPlat) return;
 
     const textToInject = postData.text || `${postData.title}\n\n${postData.description}`;
     if (!textToInject) return;
+
+    // Special LinkedIn Assistant & Auto-Trigger
+    if (currentPlat === 'linkedin' || currentPlat === 'linkedin_page') {
+      handleLinkedInAutoTrigger();
+      renderLinkedInFloatingHelper(postData);
+    }
 
     // Special YouTube Studio Trigger & Assistant
     if (currentPlat === 'youtube') {
@@ -493,15 +519,131 @@
       composer.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    if (platform === 'linkedin') {
+    if (platform === 'linkedin' || platform === 'linkedin_page') {
       const imageToAttach = (postData && (postData.imageDataUrl || postData.image)) || '';
       if (imageToAttach) {
         autoAttachLinkedInImage(composer, imageToAttach);
       }
-      showAutoFillBadge(platform, 'Auto-filled LinkedIn Post & Attached Image!');
+      const label = platform === 'linkedin_page' ? 'Auto-filled LinkedIn Page Post & Attached Image!' : 'Auto-filled LinkedIn Post & Attached Image!';
+      showAutoFillBadge(platform, label);
     } else {
       showAutoFillBadge(platform);
     }
+  }
+
+  /**
+   * Auto-triggers LinkedIn post dialog on feed or company page admin if not open
+   */
+  function handleLinkedInAutoTrigger() {
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      // Check if composer editor is already visible
+      const activeComposer = document.querySelector('div.ql-editor[contenteditable="true"], div[aria-label*="What do you want to talk about"], div[aria-label*="Create a post"]');
+      if (activeComposer && activeComposer.offsetParent !== null) {
+        clearInterval(interval);
+        return;
+      }
+
+      // Look for "Start a post" / "Create a post" trigger buttons
+      const triggerBtn = document.querySelector(
+        'button.share-mb__button, button[aria-label*="Start a post"], button[aria-label*="Create a post"], .share-box-feed-entry__trigger, button.artdeco-button[aria-label*="post"], div.share-box-feed-entry button, .share-box-feed-entry'
+      );
+      if (triggerBtn && triggerBtn.offsetParent !== null) {
+        triggerBtn.click();
+        clearInterval(interval);
+      }
+
+      if (attempts >= 15) {
+        clearInterval(interval);
+      }
+    }, 700);
+  }
+
+  /**
+   * Renders a floating helper assistant on LinkedIn
+   */
+  function renderLinkedInFloatingHelper(postData) {
+    const existing = document.getElementById('socialshare-linkedin-helper');
+    if (existing) existing.remove();
+
+    const path = window.location.pathname.toLowerCase();
+    const isCompanyPage = path.includes('/company/') || path.includes('/school/') || path.includes('/admin/feed');
+
+    const helper = document.createElement('div');
+    helper.id = 'socialshare-linkedin-helper';
+    helper.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 320px;
+      background: #12151C;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 14px;
+      color: #F1F5F9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.65), 0 0 1px rgba(255, 255, 255, 0.2);
+      z-index: 9999999;
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    `;
+
+    const titleSnippet = postData.title ? (postData.title.slice(0, 40) + (postData.title.length > 40 ? '...' : '')) : 'Article Post';
+    const textToUse = postData.text || `${postData.title || ''}\n\n${postData.description || ''}`;
+
+    const badgeLabel = isCompanyPage ? 'LinkedIn Page Admin' : 'LinkedIn Personal Feed';
+    const badgeColor = isCompanyPage ? '#38BDF8' : '#0A66C2';
+
+    helper.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-weight: 600; font-size: 12.5px; color: #F1F5F9; display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#0A66C2"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+          LinkedIn Auto-Publisher
+        </span>
+        <span style="font-size: 10px; font-weight: 600; background: ${badgeColor}22; color: ${badgeColor}; border: 1px solid ${badgeColor}55; padding: 2px 6px; border-radius: 4px;">
+          ${badgeLabel}
+        </span>
+        <button id="close-linkedin-helper-btn" style="background: none; border: none; color: #64748B; cursor: pointer; font-size: 16px; padding: 0 4px;">&times;</button>
+      </div>
+
+      <p style="font-size: 11px; color: #94A3B8; margin: 0 0 8px 0; line-height: 1.35;">
+        ${escapeHtml(titleSnippet)}
+      </p>
+
+      ${!isCompanyPage ? `
+        <div style="background: rgba(56, 189, 248, 0.08); border: 1px dashed rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 7px 9px; margin-bottom: 8px; font-size: 10.5px; color: #7DD3FC; line-height: 1.35;">
+          💡 <strong>Post to a Page:</strong> In the composer, click your author profile dropdown at top -> Select your <strong>Company Page</strong>!
+        </div>
+      ` : ''}
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <button id="linkedin-trigger-post-btn" style="background: #0A66C2; color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 7px 12px; border-radius: 6px; font-weight: 600; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          Start Post & Auto-Fill
+        </button>
+        <button id="linkedin-copy-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #94A3B8; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Copy Full Post Text
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(helper);
+
+    helper.querySelector('#close-linkedin-helper-btn').addEventListener('click', () => helper.remove());
+
+    helper.querySelector('#linkedin-trigger-post-btn').addEventListener('click', () => {
+      handleLinkedInAutoTrigger();
+      attemptComposerInjection('linkedin', textToUse, postData);
+    });
+
+    helper.querySelector('#linkedin-copy-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(textToUse);
+      helper.querySelector('#linkedin-copy-btn').textContent = 'Copied to Clipboard!';
+      setTimeout(() => {
+        helper.querySelector('#linkedin-copy-btn').innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy Full Post Text`;
+      }, 2000);
+    });
   }
 
   /**

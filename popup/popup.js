@@ -129,6 +129,7 @@
     selectNonePlatformsBtn: document.getElementById('select-none-platforms-btn'),
     autoRandomizeCheck: document.getElementById('auto-randomize-check'),
     autoPostOnOpenCheck: document.getElementById('auto-post-on-open-check'),
+    linkedinPageInput: document.getElementById('linkedin-page-input'),
 
     // Copy & Social Buttons
     copyPostBtn: document.getElementById('copy-post-btn'),
@@ -156,7 +157,7 @@
    */
   async function loadAutoPostPreferences() {
     try {
-      const stored = await chrome.storage.local.get(['autoPostPlatforms', 'autoRandomize', 'autoPostOnOpen']);
+      const stored = await chrome.storage.local.get(['autoPostPlatforms', 'autoRandomize', 'autoPostOnOpen', 'linkedinPageTarget']);
       if (stored.autoPostPlatforms && Array.isArray(stored.autoPostPlatforms)) {
         elements.autoPlatChecks.forEach(chk => {
           const plat = chk.getAttribute('data-platform');
@@ -168,6 +169,9 @@
       }
       if (typeof stored.autoPostOnOpen === 'boolean' && elements.autoPostOnOpenCheck) {
         elements.autoPostOnOpenCheck.checked = stored.autoPostOnOpen;
+      }
+      if (stored.linkedinPageTarget && elements.linkedinPageInput) {
+        elements.linkedinPageInput.value = stored.linkedinPageTarget;
       }
     } catch (e) {}
   }
@@ -182,10 +186,12 @@
         .map(c => c.getAttribute('data-platform'));
       const autoRandomize = elements.autoRandomizeCheck ? elements.autoRandomizeCheck.checked : true;
       const autoPostOnOpen = elements.autoPostOnOpenCheck ? elements.autoPostOnOpenCheck.checked : false;
+      const linkedinPageTarget = elements.linkedinPageInput ? elements.linkedinPageInput.value.trim() : '';
       chrome.storage.local.set({
         autoPostPlatforms: selectedPlatforms,
         autoRandomize: autoRandomize,
-        autoPostOnOpen: autoPostOnOpen
+        autoPostOnOpen: autoPostOnOpen,
+        linkedinPageTarget: linkedinPageTarget
       });
     } catch (e) {}
   }
@@ -764,6 +770,8 @@
     const targetImage = state.image || (state.images && state.images[0]) || '';
     const imageDataUrl = await imageUrlToBase64(targetImage);
 
+    const pageTargetVal = elements.linkedinPageInput ? elements.linkedinPageInput.value.trim() : '';
+
     const shareUrl = platform.getUrl({
       title: titleToUse,
       description: state.description,
@@ -771,6 +779,7 @@
       image: targetImage,
       siteName: state.siteName,
       author: state.author,
+      pageTarget: pageTargetVal,
       tags: SocialShare.formatHashtags(state.tags)
     });
 
@@ -1175,6 +1184,10 @@
 
     if (elements.autoPostOnOpenCheck) {
       elements.autoPostOnOpenCheck.addEventListener('change', saveAutoPostPreferences);
+    }
+
+    if (elements.linkedinPageInput) {
+      elements.linkedinPageInput.addEventListener('input', saveAutoPostPreferences);
     }
 
     // Input syncs

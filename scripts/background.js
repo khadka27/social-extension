@@ -103,7 +103,7 @@ async function triggerBackgroundAutoPost(tab) {
       }
 
       // 2. Read user's platform preferences
-      const stored = await chrome.storage.local.get(['autoPostPlatforms', 'autoRandomize']);
+      const stored = await chrome.storage.local.get(['autoPostPlatforms', 'autoRandomize', 'linkedinPageTarget']);
       const platforms = stored.autoPostPlatforms && stored.autoPostPlatforms.length > 0 
         ? stored.autoPostPlatforms 
         : ['twitter', 'linkedin', 'threads', 'reddit'];
@@ -128,6 +128,7 @@ async function triggerBackgroundAutoPost(tab) {
           image: data.image,
           siteName: data.siteName,
           author: data.author,
+          pageTarget: stored.linkedinPageTarget || '',
           tags: SocialShare.formatHashtags(data.tags)
         });
 
