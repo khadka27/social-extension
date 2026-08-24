@@ -895,16 +895,25 @@
     const activeComposer = document.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"][role="textbox"], div[contenteditable="true"]');
     if (activeComposer && isElementVisible(activeComposer)) return null;
 
-    // Check inside "Create" modal overlay if open
-    const createModal = document.querySelector('div[role="dialog"], div.artdeco-modal');
-    if (createModal && !createModal.querySelector('div[contenteditable="true"]')) {
-      const modalOptions = createModal.querySelectorAll('button, li, div[role="button"], div[role="menuitem"], a, span, p, h3');
+    // Check inside open modal overlays if present
+    const openModals = document.querySelectorAll('div[role="dialog"], div.artdeco-modal');
+    for (const modal of openModals) {
+      if (modal.querySelector('div[contenteditable="true"]')) return null;
+
+      const modalOptions = modal.querySelectorAll('button, li, div[role="button"], div[role="menuitem"], a, span, p, h3');
       for (const el of modalOptions) {
         const text = (el.textContent || '').trim().toLowerCase();
         if (text.includes('schedule') || text.includes('event') || text.includes('article') || text.includes('hiring') || text.includes('ad')) continue;
         if (text.includes('start a post') || text.includes('create a post') || text.startsWith('start a')) {
           return el.closest('button, li, div[role="button"], div[role="menuitem"], a') || el;
         }
+      }
+
+      // If modal is an empty "Editor" header overlay (with no options and no composer), close it so main feed trigger can be clicked
+      const modalTitle = (modal.textContent || '').trim().toLowerCase();
+      if (modalTitle.includes('editor') && !modalTitle.includes('post') && modalOptions.length <= 4) {
+        const dismissBtn = modal.querySelector('button[aria-label*="Dismiss" i], button[aria-label*="Close" i], button.artdeco-modal__dismiss');
+        if (dismissBtn) clickElement(dismissBtn);
       }
     }
 
@@ -915,11 +924,12 @@
       'span.share-box-feed-entry__trigger',
       'div.share-box-feed-entry__trigger',
       'div.share-box-feed-entry',
-      'button.artdeco-button[aria-label*="Start a post" i]',
       'div.share-box-feed-entry button',
+      'button.artdeco-button[aria-label*="Start a post" i]',
       '.org-admin-page-posts__create-post-btn',
       'button.org-admin-header__create-btn',
-      'button[data-view-name="org-admin-page-posts-create-post-btn"]'
+      'button[data-view-name="org-admin-page-posts-create-post-btn"]',
+      'button[aria-label*="Create" i]'
     ];
 
     for (const sel of selectors) {
@@ -1118,12 +1128,6 @@
         const modal = document.querySelector('div[role="dialog"], div.share-box, div.artdeco-modal, div.share-creation-state');
         const composer = modal ? modal.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"]') : document.querySelector('div.ql-editor[contenteditable="true"]');
         autoAttachLinkedInImage(composer, imgSource);
-
-        // Also trigger image file input click
-        const fileInput = document.querySelector('input[type="file"][accept*="image"], input[type="file"]');
-        if (fileInput) {
-          try { fileInput.click(); } catch(e) {}
-        }
       });
     }
 
@@ -1263,7 +1267,7 @@
       composer = modal ? modal.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"]') : document.querySelector('div.ql-editor[contenteditable="true"]');
     }
 
-    // 1. Synthesize paste event directly on composer
+    // Synthesize paste event directly on composer (no local file picker popup)
     if (composer) {
       composer.focus();
       try {
@@ -1274,24 +1278,6 @@
         });
         composer.dispatchEvent(pasteEvent);
       } catch (e) {}
-    }
-
-    // 2. Click LinkedIn's "Add media" / "Photo" button if present
-    const mediaBtnSelectors = [
-      'button[aria-label*="Add media" i]',
-      'button[aria-label*="Add a photo" i]',
-      'button[aria-label*="Add photo" i]',
-      'button.share-promoted-detours-icon',
-      'button[aria-label*="media" i]',
-      'button[aria-label*="photo" i]',
-      'button[aria-label*="image" i]'
-    ];
-    for (const sel of mediaBtnSelectors) {
-      const btn = document.querySelector(sel);
-      if (btn && isElementVisible(btn)) {
-        clickElement(btn);
-        break;
-      }
     }
 
     // Method 2: Target LinkedIn hidden/visible file inputs
