@@ -103,9 +103,13 @@ console.log('🧪 Running SocialShare Extension Tests...\n');
     hashtags: ['#Coding', '#Web']
   };
 
+  const review = SocialShare.TEMPLATES.review(mockData);
+  assert.ok(review.includes('Reviews: What should you know before buying?'));
+  assert.ok(review.includes('Quick review snapshot:'));
+  console.log('✓ Review Snapshot template formatting valid');
+
   const standard = SocialShare.TEMPLATES.standard(mockData);
-  assert.ok(standard.includes('How to Build an Extension'));
-  assert.ok(standard.includes('#Coding #Web'));
+  assert.ok(standard.includes('Reviews: What should you know before buying?'));
   console.log('✓ Standard template formatting valid');
 
   const casual = SocialShare.TEMPLATES.casual(mockData);

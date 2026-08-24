@@ -891,8 +891,22 @@
    * Helper that finds the "Start a post" or "+ Create" button on LinkedIn Page Admin or Feed
    */
   function findLinkedInTriggerButton() {
-    const isModalOpen = document.querySelector('div[role="dialog"] div[contenteditable="true"], div.artdeco-modal div[contenteditable="true"]');
-    if (isModalOpen) return null;
+    // If active text editor composer is already open, no trigger button needed
+    const activeComposer = document.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"][role="textbox"], div[contenteditable="true"]');
+    if (activeComposer && isElementVisible(activeComposer)) return null;
+
+    // Check inside "Create" modal overlay if open
+    const createModal = document.querySelector('div[role="dialog"], div.artdeco-modal');
+    if (createModal && !createModal.querySelector('div[contenteditable="true"]')) {
+      const modalOptions = createModal.querySelectorAll('button, li, div[role="button"], div[role="menuitem"], a, span, p, h3');
+      for (const el of modalOptions) {
+        const text = (el.textContent || '').trim().toLowerCase();
+        if (text.includes('schedule') || text.includes('event') || text.includes('article') || text.includes('hiring') || text.includes('ad')) continue;
+        if (text.includes('start a post') || text.includes('create a post') || text.startsWith('start a')) {
+          return el.closest('button, li, div[role="button"], div[role="menuitem"], a') || el;
+        }
+      }
+    }
 
     const selectors = [
       'button[aria-label*="Start a post" i]',
@@ -910,7 +924,7 @@
 
     for (const sel of selectors) {
       const el = document.querySelector(sel);
-      if (el && el.tagName !== 'A' && isElementVisible(el) && !el.closest('div[role="dialog"]')) {
+      if (el && el.tagName !== 'A' && isElementVisible(el)) {
         const aria = (el.getAttribute('aria-label') || '').toLowerCase();
         if (!aria.includes('schedule') && !aria.includes('calendar') && !aria.includes('event')) {
           return el;
@@ -918,10 +932,10 @@
       }
     }
 
-    // Text search fallback for buttons ONLY (never <a> navigation links or modal buttons)
+    // Text search fallback for buttons ONLY (never <a> navigation links)
     const candidates = document.querySelectorAll('button, div[role="button"], div.share-box-feed-entry, span.share-box-feed-entry__trigger, div.share-box-feed-entry__trigger');
     for (const el of candidates) {
-      if (el.tagName !== 'A' && isElementVisible(el) && !el.closest('div[role="dialog"]')) {
+      if (el.tagName !== 'A' && isElementVisible(el)) {
         const text = (el.textContent || '').trim().toLowerCase();
         const aria = (el.getAttribute('aria-label') || '').toLowerCase();
         if (aria.includes('schedule') || text.includes('schedule') || aria.includes('event')) continue;
@@ -958,22 +972,34 @@
           hasClicked = true;
           clickElement(triggerBtn);
 
-          // If clicking + Create opened a dropdown menu on Admin pages, click "Start a post" inside the menu
-          setTimeout(() => {
-            const menuOptions = document.querySelectorAll('div[role="menu"] [role="menuitem"], div.artdeco-dropdown__content [role="button"], div.artdeco-dropdown__content button, ul.artdeco-dropdown__content li, div.artdeco-dropdown__content span');
-            for (const opt of menuOptions) {
+          // Polling loop to select "Start a post" inside dropdown menu or Create modal
+          let menuAttempts = 0;
+          const menuInterval = setInterval(() => {
+            menuAttempts++;
+            const candidates = document.querySelectorAll(
+              'div[role="menu"] [role="menuitem"], div.artdeco-dropdown__content *, div.artdeco-dropdown__item, ul.artdeco-dropdown__content li, div[role="dialog"] *, button, span, li'
+            );
+            let itemClicked = false;
+            for (const opt of candidates) {
               const optText = (opt.textContent || '').trim().toLowerCase();
-              if (optText.includes('schedule') || optText.includes('event')) continue;
-              if (optText.includes('start a post') || optText.includes('create a post') || optText === 'post' || optText.startsWith('start')) {
-                clickElement(opt);
+              if (optText.includes('schedule') || optText.includes('event') || optText.includes('article') || optText.includes('hiring')) continue;
+              if (optText.includes('start a post') || optText.includes('create a post') || optText === 'post' || optText.startsWith('start a')) {
+                const clickable = opt.closest('li, div[role="menuitem"], button, div.artdeco-dropdown__item, a') || opt;
+                clickElement(clickable);
+                itemClicked = true;
                 break;
               }
             }
-          }, 350);
+
+            const openComposer = document.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"]');
+            if (itemClicked || openComposer || menuAttempts >= 8) {
+              clearInterval(menuInterval);
+            }
+          }, 200);
         }
       }
 
-      if (attempts >= 12 || (hasClicked && attempts >= 4)) {
+      if (attempts >= 15 || (hasClicked && attempts >= 6)) {
         clearInterval(interval);
       }
     }, 400);
@@ -1056,6 +1082,13 @@
           </button>
         ` : ''}
 
+        ${postData.url ? `
+          <button id="linkedin-comment-btn" style="background: #059669; color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            Auto-Fill Comment (Link)
+          </button>
+        ` : ''}
+
         <button id="linkedin-copy-btn" style="background: #141720; border: 1px solid rgba(255, 255, 255, 0.08); color: #94A3B8; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
           Copy Full Post Text
@@ -1085,6 +1118,49 @@
         const modal = document.querySelector('div[role="dialog"], div.share-box, div.artdeco-modal, div.share-creation-state');
         const composer = modal ? modal.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"]') : document.querySelector('div.ql-editor[contenteditable="true"]');
         autoAttachLinkedInImage(composer, imgSource);
+
+        // Also trigger image file input click
+        const fileInput = document.querySelector('input[type="file"][accept*="image"], input[type="file"]');
+        if (fileInput) {
+          try { fileInput.click(); } catch(e) {}
+        }
+      });
+    }
+
+    const commentBtn = helper.querySelector('#linkedin-comment-btn');
+    if (commentBtn) {
+      commentBtn.addEventListener('click', () => {
+        const urlToComment = postData.url || '';
+        if (!urlToComment) return;
+
+        copyToClipboard(urlToComment, 'Article URL copied for comment!');
+
+        // Find active comment input box on LinkedIn
+        const commentBoxSelectors = [
+          'div.comments-comment-box__content-editor[contenteditable="true"]',
+          'div.comments-comment-texteditor div[contenteditable="true"]',
+          'div[contenteditable="true"][aria-label*="comment" i]',
+          'div[contenteditable="true"][data-placeholder*="comment" i]',
+          'div[contenteditable="true"][aria-label*="add a comment" i]',
+          'textarea[placeholder*="comment" i]',
+          'div.comments-comment-box div[contenteditable="true"]'
+        ];
+
+        let commentBox = null;
+        for (const sel of commentBoxSelectors) {
+          const el = document.querySelector(sel);
+          if (el && isElementVisible(el)) {
+            commentBox = el;
+            break;
+          }
+        }
+
+        if (commentBox) {
+          injectTextIntoComposer(commentBox, urlToComment, 'linkedin', true, postData);
+          showAutoFillBadge('linkedin', 'Auto-filled Article URL in Comment Box!');
+        } else {
+          showAutoFillBadge('linkedin', 'Article URL Copied! Click comment box & press Ctrl+V');
+        }
       });
     }
 
@@ -1157,8 +1233,21 @@
       blob = dataUrlToBlob(imageSource);
     } else if (imageSource.startsWith('http')) {
       try {
-        const response = await fetch(imageSource);
-        if (response.ok) blob = await response.blob();
+        if (chromeApi && chromeApi.runtime && chromeApi.runtime.sendMessage) {
+          blob = await new Promise((resolve) => {
+            chromeApi.runtime.sendMessage({ action: 'FETCH_IMAGE_BASE64', url: imageSource }, (res) => {
+              if (res && res.success && res.dataUrl) {
+                resolve(dataUrlToBlob(res.dataUrl));
+              } else {
+                resolve(null);
+              }
+            });
+          });
+        }
+        if (!blob) {
+          const response = await fetch(imageSource);
+          if (response.ok) blob = await response.blob();
+        }
       } catch (e) {}
     }
 
@@ -1169,15 +1258,12 @@
     const dt = new DataTransfer();
     dt.items.add(file);
 
-    // 1. Click LinkedIn's "Add media" / "Photo" button if present to open photo picker
-    const mediaBtn = document.querySelector(
-      'button[aria-label*="Add media" i], button[aria-label*="Add a photo" i], button[aria-label*="Add photo" i], button.share-promoted-detours-icon'
-    );
-    if (mediaBtn && isElementVisible(mediaBtn)) {
-      clickElement(mediaBtn);
+    if (!composer) {
+      const modal = document.querySelector('div[role="dialog"], div.artdeco-modal, div.share-box, div.share-creation-state');
+      composer = modal ? modal.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"]') : document.querySelector('div.ql-editor[contenteditable="true"]');
     }
 
-    // 2. Synthesize paste event directly on composer
+    // 1. Synthesize paste event directly on composer
     if (composer) {
       composer.focus();
       try {
@@ -1188,6 +1274,24 @@
         });
         composer.dispatchEvent(pasteEvent);
       } catch (e) {}
+    }
+
+    // 2. Click LinkedIn's "Add media" / "Photo" button if present
+    const mediaBtnSelectors = [
+      'button[aria-label*="Add media" i]',
+      'button[aria-label*="Add a photo" i]',
+      'button[aria-label*="Add photo" i]',
+      'button.share-promoted-detours-icon',
+      'button[aria-label*="media" i]',
+      'button[aria-label*="photo" i]',
+      'button[aria-label*="image" i]'
+    ];
+    for (const sel of mediaBtnSelectors) {
+      const btn = document.querySelector(sel);
+      if (btn && isElementVisible(btn)) {
+        clickElement(btn);
+        break;
+      }
     }
 
     // Method 2: Target LinkedIn hidden/visible file inputs

@@ -11,15 +11,58 @@
    * Templates for formatting social posts
    */
   const TEMPLATES = {
-    standard: (data) => {
-      const parts = [];
-      if (data.title) parts.push(data.title);
-      if (data.description) parts.push(`\n${data.description}`);
-      if (data.url) parts.push(`\n${data.url}`);
-      if (data.hashtags && data.hashtags.length > 0) {
-        parts.push(`\n${data.hashtags.join(' ')}`);
+    review: (data) => {
+      let rawTitle = (data.title || '').trim();
+
+      // Extract clean product name
+      let productName = rawTitle
+        .replace(/\b(Reviews?|Complaints?|Scam|Legit|2024|2025|2026|2027|Hidden|Truth|Alert|Overview|Summary)\b.*/gi, '')
+        .trim();
+      if (!productName || productName.length < 2) {
+        productName = rawTitle.split(':')[0].split('|')[0].split('-')[0].trim() || 'Product';
       }
-      return parts.join('\n');
+
+      // Extract rating if present, default to 4.9/5
+      const ratingMatch = ((data.description || '') + ' ' + rawTitle).match(/\b(\d(?:\.\d)?\s*\/\s*5|\d(?:\.\d)?\s*stars?)\b/i);
+      const rating = ratingMatch ? ratingMatch[1] : '4.9/5';
+
+      let userExperience = (data.description || '').trim();
+      if (!userExperience) {
+        userExperience = 'Gradual metabolic support and user satisfaction with daily use.';
+      }
+
+      const url = data.url || '';
+
+      // Format hashtags
+      let cleanTagBase = productName.replace(/[^a-zA-Z0-9]/g, '');
+      if (!cleanTagBase) cleanTagBase = 'Product';
+
+      let hashtagsStr = '';
+      if (data.hashtags && data.hashtags.length > 0) {
+        hashtagsStr = data.hashtags.join(' ');
+      } else {
+        hashtagsStr = `#${cleanTagBase} #${cleanTagBase}Reviews`;
+      }
+
+      return `${productName} Reviews: What should you know before buying?
+
+We reviewed ${productName} by looking at customer feedback, product quality, pricing, key concerns, and the overall buying experience.
+
+Quick review snapshot:
+⭐ Rating: ${rating}
+✅ Users noticed: ${userExperience}
+⚠️ Common concerns: High demand and limited stock availability
+
+So, do the positive ${productName} reviews outweigh the complaints — and is it actually worth considering?
+
+👉 Read our complete ${productName} Reviews for customer experiences, complaints, pros & cons, pricing, and the final verdict:
+${url}
+
+${hashtagsStr}`;
+    },
+
+    standard: (data) => {
+      return TEMPLATES.review(data);
     },
 
     casual: (data) => {
