@@ -170,6 +170,12 @@
         if (target) {
           target = target.trim();
           if (target.startsWith('http://') || target.startsWith('https://')) {
+            if (text && target.includes('/admin/')) {
+              const match = target.match(/\/company\/([^\/]+)/i);
+              if (match && match[1]) {
+                return `https://www.linkedin.com/company/${match[1]}/admin/page-posts/published/?share=true`;
+              }
+            }
             return target;
           }
           const cleanSlug = target.replace(/^\/?(company|school|page)\//i, '').replace(/\/.*$/, '');

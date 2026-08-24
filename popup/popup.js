@@ -129,7 +129,12 @@
     selectNonePlatformsBtn: document.getElementById('select-none-platforms-btn'),
     autoRandomizeCheck: document.getElementById('auto-randomize-check'),
     autoPostOnOpenCheck: document.getElementById('auto-post-on-open-check'),
+    linkedinPageSelect: document.getElementById('linkedin-page-select'),
     linkedinPageInput: document.getElementById('linkedin-page-input'),
+    linkedinPageRedirectBtn: document.getElementById('linkedin-page-redirect-btn'),
+    linkedinPageDropdownBtn: document.getElementById('linkedin-page-dropdown-btn'),
+    linkedinPageMenu: document.getElementById('linkedin-page-menu'),
+    linkedinPageBtnLabel: document.getElementById('linkedin-page-btn-label'),
 
     // Copy & Social Buttons
     copyPostBtn: document.getElementById('copy-post-btn'),
@@ -170,8 +175,27 @@
       if (typeof stored.autoPostOnOpen === 'boolean' && elements.autoPostOnOpenCheck) {
         elements.autoPostOnOpenCheck.checked = stored.autoPostOnOpen;
       }
-      if (stored.linkedinPageTarget && elements.linkedinPageInput) {
-        elements.linkedinPageInput.value = stored.linkedinPageTarget;
+      if (stored.linkedinPageTarget) {
+        if (elements.linkedinPageSelect) {
+          const matchingOpt = Array.from(elements.linkedinPageSelect.options).find(opt => opt.value === stored.linkedinPageTarget);
+          if (matchingOpt) {
+            elements.linkedinPageSelect.value = stored.linkedinPageTarget;
+            if (elements.linkedinPageInput) {
+              elements.linkedinPageInput.classList.add('hidden');
+            }
+            if (elements.linkedinPageBtnLabel && matchingOpt.text !== 'Custom URL / Handle...') {
+              elements.linkedinPageBtnLabel.textContent = `Page: ${matchingOpt.text}`;
+            }
+          } else {
+            elements.linkedinPageSelect.value = 'custom';
+            if (elements.linkedinPageInput) {
+              elements.linkedinPageInput.value = stored.linkedinPageTarget;
+              elements.linkedinPageInput.classList.remove('hidden');
+            }
+          }
+        } else if (elements.linkedinPageInput) {
+          elements.linkedinPageInput.value = stored.linkedinPageTarget;
+        }
       }
     } catch (e) {}
   }
@@ -186,7 +210,12 @@
         .map(c => c.getAttribute('data-platform'));
       const autoRandomize = elements.autoRandomizeCheck ? elements.autoRandomizeCheck.checked : true;
       const autoPostOnOpen = elements.autoPostOnOpenCheck ? elements.autoPostOnOpenCheck.checked : false;
-      const linkedinPageTarget = elements.linkedinPageInput ? elements.linkedinPageInput.value.trim() : '';
+      let linkedinPageTarget = '';
+      if (elements.linkedinPageSelect && elements.linkedinPageSelect.value !== 'custom') {
+        linkedinPageTarget = elements.linkedinPageSelect.value;
+      } else if (elements.linkedinPageInput) {
+        linkedinPageTarget = elements.linkedinPageInput.value.trim();
+      }
       chrome.storage.local.set({
         autoPostPlatforms: selectedPlatforms,
         autoRandomize: autoRandomize,
@@ -783,7 +812,12 @@
     const targetImage = state.image || (state.images && state.images[0]) || '';
     const imageDataUrl = await imageUrlToBase64(targetImage);
 
-    const pageTargetVal = elements.linkedinPageInput ? elements.linkedinPageInput.value.trim() : '';
+    let pageTargetVal = '';
+    if (elements.linkedinPageSelect && elements.linkedinPageSelect.value !== 'custom') {
+      pageTargetVal = elements.linkedinPageSelect.value;
+    } else if (elements.linkedinPageInput) {
+      pageTargetVal = elements.linkedinPageInput.value.trim();
+    }
 
     const shareUrl = platform.getUrl({
       title: titleToUse,
@@ -1199,8 +1233,79 @@
       elements.autoPostOnOpenCheck.addEventListener('change', saveAutoPostPreferences);
     }
 
+    if (elements.linkedinPageSelect) {
+      elements.linkedinPageSelect.addEventListener('change', () => {
+        if (elements.linkedinPageSelect.value === 'custom') {
+          if (elements.linkedinPageInput) {
+            elements.linkedinPageInput.classList.remove('hidden');
+            elements.linkedinPageInput.focus();
+          }
+        } else {
+          if (elements.linkedinPageInput) {
+            elements.linkedinPageInput.classList.add('hidden');
+            elements.linkedinPageInput.value = elements.linkedinPageSelect.value;
+          }
+        }
+        saveAutoPostPreferences();
+      });
+    }
+
     if (elements.linkedinPageInput) {
       elements.linkedinPageInput.addEventListener('input', saveAutoPostPreferences);
+    }
+
+    if (elements.linkedinPageRedirectBtn) {
+      elements.linkedinPageRedirectBtn.addEventListener('click', openLinkedInPageDashboard);
+    }
+
+    // LinkedIn Page Dropdown Button & Menu Toggle
+    if (elements.linkedinPageDropdownBtn && elements.linkedinPageMenu) {
+      const chevron = elements.linkedinPageDropdownBtn.querySelector('.dropdown-chevron');
+
+      elements.linkedinPageDropdownBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isHidden = elements.linkedinPageMenu.classList.contains('hidden');
+        elements.linkedinPageMenu.classList.toggle('hidden');
+        if (chevron) chevron.classList.toggle('open', isHidden);
+      });
+
+      // Menu Item click handler
+      const menuItems = elements.linkedinPageMenu.querySelectorAll('.dropdown-menu-item');
+      menuItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const targetUrl = item.getAttribute('data-url');
+          const pageName = item.getAttribute('data-name');
+
+          // Update select element in drawer
+          if (elements.linkedinPageSelect) {
+            elements.linkedinPageSelect.value = targetUrl;
+            if (elements.linkedinPageInput) elements.linkedinPageInput.classList.add('hidden');
+          }
+          if (elements.linkedinPageBtnLabel) {
+            elements.linkedinPageBtnLabel.textContent = `Page: ${pageName}`;
+          }
+
+          saveAutoPostPreferences();
+
+          // Close dropdown menu
+          elements.linkedinPageMenu.classList.add('hidden');
+          if (chevron) chevron.classList.remove('open');
+
+          showToast(`Opening ${pageName} Post Creator...`);
+          shareToPlatform('linkedin_page');
+        });
+      });
+
+      // Close dropdown menu on outside click
+      document.addEventListener('click', (e) => {
+        const container = document.getElementById('linkedin-page-dropdown-container');
+        if (container && !container.contains(e.target)) {
+          elements.linkedinPageMenu.classList.add('hidden');
+          if (chevron) chevron.classList.remove('open');
+        }
+      });
     }
 
     // Input syncs
@@ -1344,6 +1449,7 @@
     // Social Sharing Buttons
     elements.socialButtons.forEach(btn => {
       btn.addEventListener('click', () => {
+        if (btn.id === 'linkedin-page-dropdown-btn') return;
         const platform = btn.getAttribute('data-platform');
         shareToPlatform(platform);
       });
@@ -1368,6 +1474,43 @@
       document.execCommand('copy');
       document.body.removeChild(textarea);
       showToast(successMessage);
+    }
+  }
+
+  /**
+   * Opens the selected LinkedIn Page admin dashboard in a new browser tab
+   */
+  function openLinkedInPageDashboard() {
+    let target = '';
+    let pageName = 'LinkedIn Page';
+    if (elements.linkedinPageSelect && elements.linkedinPageSelect.value !== 'custom') {
+      target = elements.linkedinPageSelect.value;
+      const selectedOpt = elements.linkedinPageSelect.options[elements.linkedinPageSelect.selectedIndex];
+      if (selectedOpt) pageName = selectedOpt.text;
+    } else if (elements.linkedinPageInput) {
+      target = elements.linkedinPageInput.value.trim();
+    }
+
+    if (!target) {
+      target = 'https://www.linkedin.com/company/143095909/admin/page-posts/published/?share=true';
+      pageName = 'Tiger';
+    }
+
+    let redirectUrl = target;
+    if (!redirectUrl.startsWith('http://') && !redirectUrl.startsWith('https://')) {
+      const cleanSlug = target.replace(/^\/?(company|school|page)\//i, '').replace(/\/.*$/, '');
+      redirectUrl = `https://www.linkedin.com/company/${cleanSlug}/admin/page-posts/published/?share=true`;
+    }
+
+    showToast(`Redirecting to ${pageName}...`);
+    try {
+      if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
+        chrome.tabs.create({ url: redirectUrl });
+      } else {
+        window.open(redirectUrl, '_blank');
+      }
+    } catch (e) {
+      window.open(redirectUrl, '_blank');
     }
   }
 

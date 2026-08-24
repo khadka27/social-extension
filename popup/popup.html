@@ -542,8 +542,29 @@
           </div>
 
           <div class="autopost-options-row linkedin-page-config-row" style="margin-top: 10px; border-top: 1px dashed rgba(255, 255, 255, 0.1); padding-top: 8px;">
-            <label style="font-size: 11px; color: var(--text-secondary); display: block; margin-bottom: 4px;">LinkedIn Page URL / Handle:</label>
-            <input type="text" id="linkedin-page-input" class="text-input" placeholder="e.g. acme-corp or https://www.linkedin.com/company/acme-corp/admin/feed/" style="font-size: 11px; padding: 5px 8px;" />
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 11px; color: var(--text-secondary); margin-bottom: 0;">LinkedIn Page Target:</label>
+              <button type="button" id="linkedin-page-redirect-btn" class="linkedin-redirect-btn" title="Open selected LinkedIn Page dashboard in a new tab">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 2px;">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+                <span>Open Dashboard</span>
+              </button>
+            </div>
+            <select id="linkedin-page-select" class="text-input" style="font-size: 11px; padding: 5px 8px; width: 100%; margin-bottom: 6px; background: var(--bg-surface-elevated, #1a1f2c); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm, 6px); cursor: pointer;">
+              <option value="https://www.linkedin.com/company/143095909/admin/dashboard/">Tiger</option>
+              <option value="https://www.linkedin.com/company/105431638/admin/dashboard/">DHS</option>
+              <option value="https://www.linkedin.com/company/143100965/admin/dashboard/">Mag</option>
+              <option value="https://www.linkedin.com/company/105433535/admin/dashboard/">Supp Vibe</option>
+              <option value="https://www.linkedin.com/company/143089116/admin/dashboard/">Dolphin</option>
+              <option value="https://www.linkedin.com/company/143108953/admin/dashboard/">TBR</option>
+              <option value="https://www.linkedin.com/company/143512909/admin/dashboard/">GRC</option>
+              <option value="https://www.linkedin.com/company/143505915/admin/dashboard/">Supp Coach</option>
+              <option value="custom">Custom URL / Handle...</option>
+            </select>
+            <input type="text" id="linkedin-page-input" class="text-input hidden" placeholder="e.g. acme-corp or https://www.linkedin.com/company/..." style="font-size: 11px; padding: 5px 8px;" />
           </div>
         </div>
       </section>
@@ -574,16 +595,58 @@
             <span>LinkedIn</span>
           </button>
 
-          <!-- LinkedIn Page -->
-          <button class="social-btn social-linkedin-page" data-platform="linkedin_page" title="Share to LinkedIn Company / Organization Page">
-            <div class="social-icon" style="position: relative;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+          <!-- LinkedIn Page Dropdown Button -->
+          <div class="social-dropdown-wrapper" id="linkedin-page-dropdown-container">
+            <button type="button" class="social-btn social-linkedin-page" id="linkedin-page-dropdown-btn" data-platform="linkedin_page" title="Select or Share to LinkedIn Page">
+              <div class="social-icon" style="position: relative;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                </svg>
+                <span style="position: absolute; bottom: -2px; right: -4px; background: #004182; color: #fff; font-size: 8px; font-weight: 700; padding: 0 2px; border-radius: 3px; line-height: 1;">PAGE</span>
+              </div>
+              <span id="linkedin-page-btn-label">LinkedIn Page</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left: auto; transition: transform 0.2s ease;" class="dropdown-chevron">
+                <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
-              <span style="position: absolute; bottom: -2px; right: -4px; background: #004182; color: #fff; font-size: 8px; font-weight: 700; padding: 0 2px; border-radius: 3px; line-height: 1;">PAGE</span>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="linkedin-page-menu" class="social-dropdown-menu hidden">
+              <div class="dropdown-menu-header">Open Page Post Creator:</div>
+              <button type="button" class="dropdown-menu-item" data-url="https://www.linkedin.com/company/143095909/admin/dashboard/" data-name="Tiger">
+                <span>🐯 Tiger</span>
+                <span class="redirect-tag">Create Post ✏️</span>
+              </button>
+              <button type="button" class="dropdown-menu-item" data-url="https://www.linkedin.com/company/105431638/admin/dashboard/" data-name="DHS">
+                <span>🏥 DHS</span>
+                <span class="redirect-tag">Create Post ✏️</span>
+              </button>
+              <button type="button" class="dropdown-menu-item" data-url="https://www.linkedin.com/company/143100965/admin/dashboard/" data-name="Mag">
+                <span>📖 Mag</span>
+                <span class="redirect-tag">Create Post ✏️</span>
+              </button>
+              <button type="button" class="dropdown-menu-item" data-url="https://www.linkedin.com/company/105433535/admin/dashboard/" data-name="Supp Vibe">
+                <span>🎵 Supp Vibe</span>
+                <span class="redirect-tag">Create Post ✏️</span>
+              </button>
+              <button type="button" class="dropdown-menu-item" data-url="https://www.linkedin.com/company/143089116/admin/dashboard/" data-name="Dolphin">
+                <span>🐬 Dolphin</span>
+                <span class="redirect-tag">Create Post ✏️</span>
+              </button>
+              <button type="button" class="dropdown-menu-item" data-url="https://www.linkedin.com/company/143108953/admin/dashboard/" data-name="TBR">
+                <span>📊 TBR</span>
+                <span class="redirect-tag">Create Post ✏️</span>
+              </button>
+              <button type="button" class="dropdown-menu-item" data-url="https://www.linkedin.com/company/143512909/admin/dashboard/" data-name="GRC">
+                <span>🛡️ GRC</span>
+                <span class="redirect-tag">Create Post ✏️</span>
+              </button>
+              <button type="button" class="dropdown-menu-item" data-url="https://www.linkedin.com/company/143505915/admin/dashboard/" data-name="Supp Coach">
+                <span>🏋️ Supp Coach</span>
+                <span class="redirect-tag">Create Post ✏️</span>
+              </button>
             </div>
-            <span>LinkedIn Page</span>
-          </button>
+          </div>
 
           <!-- Facebook -->
           <button class="social-btn social-facebook" data-platform="facebook" title="Share to Facebook">

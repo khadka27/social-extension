@@ -129,13 +129,17 @@
     const target = targetText.trim();
 
     if (cur === target) return true;
-    if (target.length > 30 && cur.length >= Math.min(target.length * 0.85, target.length - 15)) return true;
 
     const startSnippet = target.slice(0, 20).trim();
     const endSnippet = target.slice(-25).trim();
 
-    if (startSnippet && endSnippet && cur.includes(startSnippet) && cur.includes(endSnippet)) {
-      return true;
+    if (startSnippet && cur.includes(startSnippet)) {
+      if (endSnippet && cur.includes(endSnippet)) {
+        return true;
+      }
+      if (target.length <= 40) {
+        return true;
+      }
     }
     return false;
   }
@@ -591,10 +595,17 @@
     if (!composer) return;
     try {
       composer.focus();
+      // Ensure composer has a child block node so selection range is inside a text node
+      if (!composer.firstChild) {
+        const p = document.createElement('p');
+        p.innerHTML = '<br>';
+        composer.appendChild(p);
+      }
+      const targetChild = composer.querySelector('p, span, [data-text="true"]') || composer.firstChild || composer;
       const sel = window.getSelection();
       if (sel) {
         const range = document.createRange();
-        range.selectNodeContents(composer);
+        range.selectNodeContents(targetChild);
         sel.removeAllRanges();
         sel.addRange(range);
       }
@@ -607,33 +618,20 @@
   function injectTextIntoComposer(composer, text, platform, forceOverwrite = false, postData = null) {
     if (!composer || !text) return;
 
+    // Resolve composer to exact contenteditable element if wrapper was passed
+    if (!composer.isContentEditable && composer.getAttribute('contenteditable') !== 'true') {
+      const childEditable = composer.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"], p[contenteditable="true"], [contenteditable="true"], textarea');
+      if (childEditable) {
+        composer = childEditable;
+      }
+    }
+
     const trimmedText = text.trim();
     const currentText = (composer.textContent || '').trim();
 
-    // If composer already has the exact full text injected, return early
-    if (!forceOverwrite && currentText === trimmedText) {
+    // If composer already has the target text injected, skip
+    if (!forceOverwrite && isTextFullyInjected(currentText, trimmedText)) {
       return;
-    }
-
-    // Detect if current composer text is just a partial pre-fill (e.g. native LinkedIn URL title pre-fill)
-    const isPartialPreFill = postData && postData.title && (
-      currentText === postData.title.trim() ||
-      trimmedText.startsWith(currentText) ||
-      (currentText.length > 0 && trimmedText.includes(currentText) && currentText.length < trimmedText.length * 0.9)
-    );
-
-    // If not forcing overwrite and NOT a partial pre-fill:
-    // Only skip if current text is substantial and user typed custom text (not default placeholders)
-    if (!forceOverwrite && !isPartialPreFill && currentText.length > 25) {
-      const lower = currentText.toLowerCase();
-      const isPlaceholder = lower.includes('share your thoughts') ||
-                            lower.includes('what\'s on your mind') ||
-                            lower.includes('start a post') ||
-                            lower.includes('what do you want to talk about') ||
-                            lower.includes('write something');
-      if (!isPlaceholder && isTextFullyInjected(currentText, trimmedText)) {
-        return;
-      }
     }
 
     // Ensure element is editable using standard isContentEditable property or element type
@@ -688,6 +686,10 @@
           }
           composer.appendChild(p);
         });
+        try {
+          composer.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: text }));
+          composer.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: text }));
+        } catch (e) {}
       }
 
       // Remove Quill placeholder overlay if present inside modal
@@ -889,27 +891,40 @@
    * Helper that finds the "Start a post" or "+ Create" button on LinkedIn Page Admin or Feed
    */
   function findLinkedInTriggerButton() {
+    const isModalOpen = document.querySelector('div[role="dialog"] div[contenteditable="true"], div.artdeco-modal div[contenteditable="true"]');
+    if (isModalOpen) return null;
+
     const selectors = [
       'button[aria-label*="Start a post" i]',
       'button.share-mb__button',
       '.share-box-feed-entry__trigger',
-      'button.artdeco-button[aria-label*="post" i]',
+      'span.share-box-feed-entry__trigger',
+      'div.share-box-feed-entry__trigger',
+      'div.share-box-feed-entry',
+      'button.artdeco-button[aria-label*="Start a post" i]',
       'div.share-box-feed-entry button',
       '.org-admin-page-posts__create-post-btn',
       'button.org-admin-header__create-btn',
-      'button[aria-label*="Create" i]'
+      'button[data-view-name="org-admin-page-posts-create-post-btn"]'
     ];
 
     for (const sel of selectors) {
       const el = document.querySelector(sel);
-      if (el && el.tagName !== 'A' && isElementVisible(el)) return el;
+      if (el && el.tagName !== 'A' && isElementVisible(el) && !el.closest('div[role="dialog"]')) {
+        const aria = (el.getAttribute('aria-label') || '').toLowerCase();
+        if (!aria.includes('schedule') && !aria.includes('calendar') && !aria.includes('event')) {
+          return el;
+        }
+      }
     }
 
-    // Text search fallback for buttons ONLY (never <a> navigation links)
-    const candidates = document.querySelectorAll('button, div[role="button"], div.share-box-feed-entry');
+    // Text search fallback for buttons ONLY (never <a> navigation links or modal buttons)
+    const candidates = document.querySelectorAll('button, div[role="button"], div.share-box-feed-entry, span.share-box-feed-entry__trigger, div.share-box-feed-entry__trigger');
     for (const el of candidates) {
-      if (el.tagName !== 'A' && isElementVisible(el)) {
+      if (el.tagName !== 'A' && isElementVisible(el) && !el.closest('div[role="dialog"]')) {
         const text = (el.textContent || '').trim().toLowerCase();
+        const aria = (el.getAttribute('aria-label') || '').toLowerCase();
+        if (aria.includes('schedule') || text.includes('schedule') || aria.includes('event')) continue;
         if (text.includes('start a post') || text.includes('create a post') || text === '+ create' || text.startsWith('+ create')) {
           return el;
         }
@@ -927,9 +942,12 @@
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
-      // Check if modal or composer is already open
-      const modal = document.querySelector('div[role="dialog"], div.share-box, div.artdeco-modal, div.share-creation-state');
-      if (modal) {
+
+      // Check if active composer is open
+      const activeComposer = document.querySelector(
+        'div.ql-editor[contenteditable="true"], div.ql-editor, div[contenteditable="true"][role="textbox"], div[contenteditable="true"]'
+      );
+      if (activeComposer && isElementVisible(activeComposer)) {
         clearInterval(interval);
         return;
       }
@@ -939,13 +957,26 @@
         if (triggerBtn) {
           hasClicked = true;
           clickElement(triggerBtn);
+
+          // If clicking + Create opened a dropdown menu on Admin pages, click "Start a post" inside the menu
+          setTimeout(() => {
+            const menuOptions = document.querySelectorAll('div[role="menu"] [role="menuitem"], div.artdeco-dropdown__content [role="button"], div.artdeco-dropdown__content button, ul.artdeco-dropdown__content li, div.artdeco-dropdown__content span');
+            for (const opt of menuOptions) {
+              const optText = (opt.textContent || '').trim().toLowerCase();
+              if (optText.includes('schedule') || optText.includes('event')) continue;
+              if (optText.includes('start a post') || optText.includes('create a post') || optText === 'post' || optText.startsWith('start')) {
+                clickElement(opt);
+                break;
+              }
+            }
+          }, 350);
         }
       }
 
-      if (attempts >= 8 || hasClicked) {
+      if (attempts >= 12 || (hasClicked && attempts >= 4)) {
         clearInterval(interval);
       }
-    }, 500);
+    }, 400);
   }
 
   /**
@@ -1037,11 +1068,14 @@
     helper.querySelector('#close-linkedin-helper-btn').addEventListener('click', () => helper.remove());
 
     helper.querySelector('#linkedin-trigger-post-btn').addEventListener('click', () => {
-      const triggerBtn = findLinkedInTriggerButton();
-      if (triggerBtn) {
-        clickElement(triggerBtn);
+      const activeComposer = document.querySelector('div.ql-editor[contenteditable="true"], div[contenteditable="true"][role="textbox"], div[contenteditable="true"]');
+      if (!activeComposer || !isElementVisible(activeComposer)) {
+        const triggerBtn = findLinkedInTriggerButton();
+        if (triggerBtn) {
+          clickElement(triggerBtn);
+        }
+        handleLinkedInAutoTrigger();
       }
-      handleLinkedInAutoTrigger();
       attemptComposerInjection(isCompanyPage ? 'linkedin_page' : 'linkedin', textToUse, postData, true);
     });
 

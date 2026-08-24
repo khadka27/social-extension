@@ -1104,6 +1104,77 @@ body::-webkit-scrollbar-thumb:hover {
 .social-bluesky:hover { border-color: #0085FF; color: #73BAFF; }
 .social-email:hover { border-color: #9CA3AF; }
 
+/* Dropdown Menu for Social Buttons */
+.social-dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.social-dropdown-wrapper .social-btn {
+  width: 100%;
+}
+
+.social-dropdown-wrapper .dropdown-chevron.open {
+  transform: rotate(180deg);
+}
+
+.social-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  min-width: 195px;
+  background: var(--bg-surface-elevated, #131722);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: var(--radius-sm, 8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 12px rgba(56, 189, 248, 0.2);
+  z-index: 9999;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdown-menu-header {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #94a3b8);
+  padding: 4px 6px 5px 6px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  margin-bottom: 3px;
+}
+
+.dropdown-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: none;
+  color: var(--text-primary, #f8fafc);
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.dropdown-menu-item:hover {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  padding-left: 11px;
+}
+
+.dropdown-menu-item .redirect-tag {
+  font-size: 9px;
+  color: #38bdf8;
+  opacity: 0.85;
+}
+
 /* =========================================================
    Toast Notification & Utilities
    ========================================================= */
@@ -1139,6 +1210,28 @@ body::-webkit-scrollbar-thumb:hover {
 
 .btn-secondary:hover {
   background: var(--bg-surface-hover);
+}
+
+.linkedin-redirect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(0, 119, 181, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: var(--radius-sm, 4px);
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.linkedin-redirect-btn:hover {
+  background: rgba(0, 119, 181, 0.35);
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
 }
 
 .hidden {

@@ -40,7 +40,11 @@ console.log('🧪 Running SocialShare Extension Tests...\n');
   const pageMockData = { ...mockData, pageTarget: 'acme-corp' };
   const linkedinPageUrl = SocialShare.PLATFORMS.linkedin_page.getUrl(pageMockData);
   assert.ok(linkedinPageUrl.includes('linkedin.com/company/acme-corp/admin/page-posts/published/'));
-  console.log('✓ LinkedIn Page Share URL valid');
+
+  const tigerPageMockData = { ...mockData, pageTarget: 'https://www.linkedin.com/company/143095909/admin/dashboard/' };
+  const tigerLinkedinPageUrl = SocialShare.PLATFORMS.linkedin_page.getUrl(tigerPageMockData);
+  assert.ok(tigerLinkedinPageUrl.includes('linkedin.com/company/143095909/admin/page-posts/published/'));
+  console.log('✓ LinkedIn Page Share URL valid (including company dashboard admin URLs)');
 
   // Test WhatsApp
   const waUrl = SocialShare.PLATFORMS.whatsapp.getUrl(mockData);
