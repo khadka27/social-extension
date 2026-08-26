@@ -155,6 +155,8 @@ async function triggerBackgroundAutoPost(tab) {
               url: data.url,
               image: data.image || '',
               imageDataUrl: imageDataUrl || '',
+              images: data.image ? [data.image] : [],
+              imagesDataUrls: imageDataUrl ? [imageDataUrl] : [],
               timestamp: Date.now()
             },
             pendingFacebookPost: {

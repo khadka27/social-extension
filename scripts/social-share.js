@@ -8,27 +8,57 @@
   'use strict';
 
   /**
+   * Truncates long text descriptions to fit cleanly inside post templates
+   */
+  function formatUserExperience(desc, maxLen = 75) {
+    let text = (desc || '').trim();
+    if (!text) return 'User satisfaction and positive daily feedback.';
+
+    // Clean out URLs and extra whitespace
+    text = text.replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim();
+
+    // Extract first complete sentence if it fits
+    const firstSentenceMatch = text.match(/^[^.!?]+[.!?]/);
+    if (firstSentenceMatch && firstSentenceMatch[0].length <= maxLen && firstSentenceMatch[0].length >= 15) {
+      return firstSentenceMatch[0].trim();
+    }
+
+    if (text.length > maxLen) {
+      let trimmed = text.slice(0, maxLen);
+      const lastSpace = trimmed.lastIndexOf(' ');
+      if (lastSpace > 20) trimmed = trimmed.slice(0, lastSpace);
+      return trimmed + '...';
+    }
+
+    return text;
+  }
+
+  /**
    * Templates for formatting social posts
    */
   const TEMPLATES = {
     review: (data) => {
       let rawTitle = (data.title || '').trim();
 
+      // Clean out any hashtags from rawTitle first
+      rawTitle = rawTitle.replace(/#[a-zA-Z0-9_]+/g, '').trim();
+
       // Extract clean product name
       let productName = rawTitle
-        .replace(/\b(Reviews?|Complaints?|Scam|Legit|2024|2025|2026|2027|Hidden|Truth|Alert|Overview|Summary)\b.*/gi, '')
+        .replace(/\b(Reviews?|Complaints?|Scam|Legit|2024|2025|2026|2027|Hidden|Truth|Alert|Overview|Summary|Worth buying\??)\b.*/gi, '')
         .trim();
       if (!productName || productName.length < 2) {
         productName = rawTitle.split(':')[0].split('|')[0].split('-')[0].trim() || 'Product';
       }
+      productName = productName.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
 
-      // Extract rating if present, default to 4.9/5
+      // Extract rating if present, default to 4.8/5
       const ratingMatch = ((data.description || '') + ' ' + rawTitle).match(/\b(\d(?:\.\d)?\s*\/\s*5|\d(?:\.\d)?\s*stars?)\b/i);
-      const rating = ratingMatch ? ratingMatch[1] : '4.9/5';
+      const rating = ratingMatch ? ratingMatch[1] : '4.8/5';
 
-      let userExperience = (data.description || '').trim();
-      if (!userExperience) {
-        userExperience = 'Gradual metabolic support and user satisfaction with daily use.';
+      let concerns = (data.concerns || 'High demand, limited stock').trim();
+      if (concerns.length > 35) {
+        concerns = concerns.slice(0, 32) + '...';
       }
 
       const url = data.url || '';
@@ -39,29 +69,59 @@
 
       let hashtagsStr = '';
       if (data.hashtags && data.hashtags.length > 0) {
-        hashtagsStr = data.hashtags.join(' ');
+        const uniqueTags = Array.from(new Set(data.hashtags.map(h => h.trim()))).filter(Boolean);
+        hashtagsStr = uniqueTags.join(' ');
       } else {
-        hashtagsStr = `#${cleanTagBase} #${cleanTagBase}Reviews`;
+        hashtagsStr = `#${cleanTagBase} #Reviews`;
       }
 
-      return `${productName} Reviews: What should you know before buying?
+      let lineHeader = `🔎 ${productName} Reviews: Worth buying?`;
+      let lineRating = `⭐ Rating: ${rating}`;
+      let lineConcerns = `⚠️ Concerns: ${concerns}`;
+      let lineSummary = `Is ${productName} worth it? We break down reviews, complaints, pros & cons, pricing, and the final verdict.`;
+      let lineUrl = `👉 ${url}`;
 
-We reviewed ${productName} by looking at customer feedback, product quality, pricing, key concerns, and the overall buying experience.
+      // Helper to calculate X (Twitter) character count (URLs count as 23 chars)
+      const calculateTwitterLength = (str, rawUrl) => {
+        let len = str.length;
+        if (rawUrl && str.includes(rawUrl)) {
+          len = len - rawUrl.length + 23;
+        }
+        return len;
+      };
 
-Quick review snapshot:
-⭐ Rating: ${rating}
-✅ Users noticed: ${userExperience}
-⚠️ Common concerns: High demand and limited stock availability
+      // Determine available remaining characters for lineUsers
+      const fixedLinesText = `${lineHeader}\n${lineRating}\n✅ Users like: \n${lineConcerns}\n${lineSummary}\n${lineUrl}\n${hashtagsStr}`;
+      const fixedLen = calculateTwitterLength(fixedLinesText, url);
+      const remainingForUsers = Math.max(15, 276 - fixedLen);
 
-So, do the positive ${productName} reviews outweigh the complaints — and is it actually worth considering?
+      let userExperience = formatUserExperience(data.description, remainingForUsers);
+      let lineUsers = `✅ Users like: ${userExperience}`;
 
-👉 Read our complete ${productName} Reviews for customer experiences, complaints, pros & cons, pricing, and the final verdict:
-${url}
+      let post = `${lineHeader}\n${lineRating}\n${lineUsers}\n${lineConcerns}\n${lineSummary}\n${lineUrl}\n${hashtagsStr}`;
 
-${hashtagsStr}`;
+      // If text still exceeds 276 Twitter characters, shorten lineSummary
+      if (calculateTwitterLength(post, url) > 276) {
+        lineSummary = `Is ${productName} worth it? Full review & verdict.`;
+        const updatedFixedText = `${lineHeader}\n${lineRating}\n✅ Users like: \n${lineConcerns}\n${lineSummary}\n${lineUrl}\n${hashtagsStr}`;
+        const updatedFixedLen = calculateTwitterLength(updatedFixedText, url);
+        userExperience = formatUserExperience(data.description, Math.max(15, 276 - updatedFixedLen));
+        lineUsers = `✅ Users like: ${userExperience}`;
+        post = `${lineHeader}\n${lineRating}\n${lineUsers}\n${lineConcerns}\n${lineSummary}\n${lineUrl}\n${hashtagsStr}`;
+      }
+
+      return post;
     },
 
     standard: (data) => {
+      return TEMPLATES.review(data);
+    },
+
+    x: (data) => {
+      return TEMPLATES.review(data);
+    },
+
+    twitter: (data) => {
       return TEMPLATES.review(data);
     },
 
@@ -136,13 +196,14 @@ ${hashtagsStr}`;
    */
   function formatHashtags(tags) {
     if (!tags || !Array.isArray(tags)) return [];
-    return tags
+    const formatted = tags
       .map(t => {
         let clean = t.replace(/[^a-zA-Z0-9_]/g, '');
         if (!clean) return '';
         return clean.startsWith('#') ? clean : `#${clean}`;
       })
       .filter(Boolean);
+    return Array.from(new Set(formatted));
   }
 
   /**
@@ -172,16 +233,10 @@ ${hashtagsStr}`;
       icon: 'twitter',
       color: '#000000',
       getUrl: (data) => {
-        let text = data.title ? `${data.title}` : '';
-        if (data.description) {
-          text += `\n\n${data.description}`;
-        }
-        const tags = (data.tags || []).map(t => t.replace(/^#/, '')).join(',');
+        const text = TEMPLATES.review(data);
         const params = new URLSearchParams({
-          url: data.url || '',
           text: text
         });
-        if (tags) params.set('hashtags', tags);
         return `https://twitter.com/intent/tweet?${params.toString()}`;
       }
     },

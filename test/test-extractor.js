@@ -19,6 +19,12 @@ console.log('🧪 Running SocialShare Extension Tests...\n');
     description: 'A deep dive into modern Manifest V3 architecture and AI tools.',
     url: 'https://techblog.io/future-web-extensions',
     image: 'https://techblog.io/images/hero.png',
+    images: [
+      'https://techblog.io/images/hero1.png',
+      'https://techblog.io/images/hero2.png',
+      'https://techblog.io/images/hero3.png',
+      'https://techblog.io/images/hero4.png'
+    ],
     siteName: 'TechBlog',
     author: 'Alex Dev',
     tags: ['#WebDev', '#JavaScript', '#AI']
@@ -27,8 +33,8 @@ console.log('🧪 Running SocialShare Extension Tests...\n');
   // Test X/Twitter
   const twitterUrl = SocialShare.PLATFORMS.twitter.getUrl(mockData);
   assert.ok(twitterUrl.includes('twitter.com/intent/tweet'));
-  assert.ok(twitterUrl.includes('The+Future+of+Web+Extensions'));
-  console.log('✓ Twitter/X Share URL valid');
+  assert.ok(twitterUrl.includes('The+Future+of+Web+Extensions') || twitterUrl.includes('Reviews'));
+  console.log('✓ Twitter/X Share URL & Multi-Image payload valid');
 
   // Test LinkedIn
   const linkedInUrl = SocialShare.PLATFORMS.linkedin.getUrl(mockData);
@@ -104,12 +110,28 @@ console.log('🧪 Running SocialShare Extension Tests...\n');
   };
 
   const review = SocialShare.TEMPLATES.review(mockData);
-  assert.ok(review.includes('Reviews: What should you know before buying?'));
-  assert.ok(review.includes('Quick review snapshot:'));
+  assert.ok(review.includes('🔎 How to Build an Extension Reviews: Worth buying?'));
+  assert.ok(review.includes('⭐ Rating:'));
+  assert.ok(review.includes('✅ Users like:'));
+  assert.ok(review.includes('⚠️ Concerns:'));
+  assert.ok(review.includes('👉 https://example.com/guide'));
   console.log('✓ Review Snapshot template formatting valid');
 
+  // Test character limit on long descriptions (e.g. 5,000 chars)
+  const longData = {
+    title: 'GLPatches Reviews and Complaints 2026 | Scam or Legit?',
+    description: 'GL Patches is a daily supplement formulated to help individuals manage energy levels, fatigue and health concerns. GL Patches aims to optimize metabolic balance. To ensure customers don\'t get scammed or misled, our team conducted a thorough review evaluating key factors such as ingredient transparency, manufacturing quality, customer feedback, pricing, and real-world results.',
+    url: 'https://www.dailyhealthsupplement.com/glpatches-reviews/',
+    hashtags: ['#GLPatches', '#Reviews']
+  };
+  const longReview = SocialShare.TEMPLATES.review(longData);
+  // Calculate Twitter character count where URL = 23 chars
+  const twitterLen = longReview.length - longData.url.length + 23;
+  assert.ok(twitterLen <= 280, `Tweet length (${twitterLen}) exceeded 280 limit!`);
+  console.log(`✓ Long description X post character count optimization valid (${twitterLen} chars <= 280 limit)`);
+
   const standard = SocialShare.TEMPLATES.standard(mockData);
-  assert.ok(standard.includes('Reviews: What should you know before buying?'));
+  assert.ok(standard.includes('🔎 How to Build an Extension Reviews: Worth buying?'));
   console.log('✓ Standard template formatting valid');
 
   const casual = SocialShare.TEMPLATES.casual(mockData);

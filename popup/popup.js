@@ -842,7 +842,8 @@
           url: state.url,
           image: targetImage,
           imageDataUrl: imageDataUrl,
-          images: state.images || [],
+          images: targetImage ? [targetImage] : [],
+          imagesDataUrls: imageDataUrl ? [imageDataUrl] : [],
           timestamp: Date.now()
         },
         pendingFacebookPost: {

@@ -109,14 +109,12 @@
   function buildFallbackPostText(postData) {
     if (!postData) return '';
     if (postData.text) return postData.text;
+    if (typeof SocialShare !== 'undefined' && SocialShare.TEMPLATES && SocialShare.TEMPLATES.review) {
+      return SocialShare.TEMPLATES.review(postData);
+    }
     const parts = [];
     if (postData.title) parts.push(postData.title);
-    if (postData.description) parts.push(postData.description);
-    if (postData.url) parts.push(`Read full article: ${postData.url}`);
-    if (postData.tags && postData.tags.length) {
-      const formattedTags = postData.tags.map(t => t.startsWith('#') ? t : `#${t}`);
-      parts.push(formattedTags.join(' '));
-    }
+    if (postData.url) parts.push(postData.url);
     return parts.join('\n\n');
   }
 
@@ -144,6 +142,8 @@
     return false;
   }
 
+  let lastProcessedTimestamp = 0;
+
   /**
    * Processes a pending post payload and triggers UI helpers & composer injection
    */
@@ -155,6 +155,11 @@
     if (now - (postData.timestamp || 0) > 300000) {
       return;
     }
+
+    if (postData.timestamp && postData.timestamp === lastProcessedTimestamp) {
+      return;
+    }
+    lastProcessedTimestamp = postData.timestamp || 0;
 
     const currentPlat = detectCurrentPlatform(postData.platform);
     if (!currentPlat) return;
@@ -555,12 +560,8 @@
 
       if (composer) {
         injectTextIntoComposer(composer, text, platform, forceOverwrite, postData);
-        const currentText = (composer.textContent || '').trim();
-        if (isTextFullyInjected(currentText, text)) {
-          clearInterval(interval);
-        } else if (attempts >= maxAttempts) {
-          clearInterval(interval);
-        }
+        clearInterval(interval);
+        return;
       } else if (attempts >= maxAttempts) {
         clearInterval(interval);
       }
@@ -613,10 +614,89 @@
   }
 
   /**
+   * Helper to check if text is already cleanly present in X (Twitter) composer
+   */
+  function isTwitterTextInjected(composer, text) {
+    if (!composer || !text) return false;
+    const cur = (composer.textContent || '').trim();
+    if (!cur) return false;
+
+    // If current text starts with hashtags (pre-filled junk), it is NOT cleanly injected
+    if (cur.startsWith('#') && !text.trim().startsWith('#')) {
+      return false;
+    }
+
+    const target = text.trim();
+    if (cur === target) return true;
+
+    const headerSnippet = target.slice(0, 25).trim();
+    if (headerSnippet && cur.startsWith(headerSnippet)) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Dedicated clean text injector for X (Twitter) Draft.js composer
+   */
+  function injectTwitterText(composer, text) {
+    if (!composer || !text) return;
+    try {
+      composer.focus();
+      const range = document.createRange();
+      range.selectNodeContents(composer);
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    } catch (e) {}
+
+    let execOk = false;
+    try {
+      execOk = document.execCommand('insertText', false, text);
+    } catch (e) {}
+
+    if (!execOk) {
+      try {
+        const dt = new DataTransfer();
+        dt.setData('text/plain', text);
+        const pasteEvt = new ClipboardEvent('paste', {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: dt
+        });
+        composer.dispatchEvent(pasteEvt);
+      } catch (e) {}
+    }
+
+    try {
+      composer.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: text }));
+      composer.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+      composer.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+    } catch (e) {}
+  }
+
+  /**
    * Injects formatted text into contenteditable / textarea and triggers React/Vue/DraftJS/Polymer events
    */
   function injectTextIntoComposer(composer, text, platform, forceOverwrite = false, postData = null) {
     if (!composer || !text) return;
+
+    if (platform === 'twitter') {
+      const isAlreadyInjected = isTwitterTextInjected(composer, text);
+      if (!isAlreadyInjected || forceOverwrite) {
+        injectTwitterText(composer, text);
+      }
+      const imageToAttach = (postData && (postData.imageDataUrl || postData.image || (postData.imagesDataUrls && postData.imagesDataUrls[0]) || (postData.images && postData.images[0]))) || '';
+      if (imageToAttach) {
+        autoAttachTwitterImage(composer, imageToAttach);
+        showAutoFillBadge(platform, 'Auto-filled Tweet & Attached Cover Photo!');
+      } else {
+        showAutoFillBadge(platform);
+      }
+      return;
+    }
 
     // Resolve composer to exact contenteditable element if wrapper was passed
     if (!composer.isContentEditable && composer.getAttribute('contenteditable') !== 'true') {
@@ -726,31 +806,40 @@
       }
       const label = platform === 'linkedin_page' ? 'Auto-filled LinkedIn Page Post & Attached Image!' : 'Auto-filled LinkedIn Post & Attached Image!';
       showAutoFillBadge(platform, label);
-    } else if (platform === 'twitter') {
-      const imageToAttach = (postData && (postData.imageDataUrl || postData.image)) || '';
-      if (imageToAttach) {
-        autoAttachTwitterImage(composer, imageToAttach);
-        showAutoFillBadge(platform, 'Auto-filled Tweet & Attached Cover Image!');
-      } else {
-        showAutoFillBadge(platform);
-      }
     } else {
       showAutoFillBadge(platform);
     }
   }
 
   /**
-   * Automatically attaches an image to X (Twitter) tweet composer
+   * Automatically attaches a single primary image to X (Twitter) tweet composer
    */
   async function autoAttachTwitterImage(composer, imageSource) {
     if (!imageSource) return;
+    const src = Array.isArray(imageSource) ? imageSource[0] : imageSource;
+    if (!src) return;
+
+    // Helper to check if media is ALREADY attached to X composer DOM
+    const hasExistingTwitterMedia = () => {
+      const targetScope = composer ? (composer.closest('div[role="dialog"]') || composer.closest('div[data-testid="tweetTextarea_0_Group"]') || document.body) : document.body;
+      return !!(
+        targetScope.querySelector('div[data-testid="attachments"]') ||
+        targetScope.querySelector('div[data-testid="removeMedia"]') ||
+        targetScope.querySelector('button[aria-label*="Remove" i]') ||
+        targetScope.querySelector('div[data-testid="tweetPhoto"]') ||
+        targetScope.querySelector('div[aria-label="Media"]')
+      );
+    };
+
+    // If composer already has attached media, do not attempt attach again
+    if (hasExistingTwitterMedia()) return;
 
     let blob = null;
-    if (imageSource.startsWith('data:')) {
-      blob = dataUrlToBlob(imageSource);
-    } else if (imageSource.startsWith('http')) {
+    if (src.startsWith('data:')) {
+      blob = dataUrlToBlob(src);
+    } else if (src.startsWith('http')) {
       try {
-        const response = await fetch(imageSource);
+        const response = await fetch(src);
         if (response.ok) blob = await response.blob();
       } catch (e) {}
     }
@@ -758,12 +847,13 @@
     if (!blob) return;
 
     const ext = blob.type.includes('png') ? 'png' : 'jpg';
-    const file = new File([blob], `article-photo.${ext}`, { type: blob.type || 'image/jpeg' });
+    const file = new File([blob], `product-cover.${ext}`, { type: blob.type || 'image/jpeg' });
     const dt = new DataTransfer();
     dt.items.add(file);
 
-    // Method 1: Target X (Twitter) hidden media file inputs (input[data-testid="fileInput"])
+    // Target X (Twitter) hidden media file inputs (input[data-testid="fileInput"])
     const attachToTwitterFileInputs = () => {
+      if (hasExistingTwitterMedia()) return;
       const fileInputs = document.querySelectorAll(
         'input[data-testid="fileInput"], input[type="file"][accept*="image"], input[type="file"]'
       );
@@ -781,23 +871,8 @@
       }
     };
 
-    // Method 2: Synthesize paste event directly on composer
-    if (composer) {
-      composer.focus();
-      try {
-        const pasteEvent = new ClipboardEvent('paste', {
-          bubbles: true,
-          cancelable: true,
-          clipboardData: dt
-        });
-        composer.dispatchEvent(pasteEvent);
-      } catch (e) {}
-    }
-
     attachToTwitterFileInputs();
-    setTimeout(attachToTwitterFileInputs, 300);
-    setTimeout(attachToTwitterFileInputs, 800);
-    setTimeout(attachToTwitterFileInputs, 1500);
+    setTimeout(() => { if (!hasExistingTwitterMedia()) attachToTwitterFileInputs(); }, 500);
   }
 
   /**
@@ -828,8 +903,8 @@
     `;
 
     const titleSnippet = postData.title ? (postData.title.slice(0, 40) + (postData.title.length > 40 ? '...' : '')) : 'Tweet Post';
-    const textToUse = postData.text || `${postData.title || ''}\n\n${postData.description || ''}`;
-    const imgSource = (postData && (postData.imageDataUrl || postData.image)) || '';
+    const textToUse = postData.text || buildFallbackPostText(postData);
+    const imgSource = (postData && (postData.imageDataUrl || postData.image || (postData.imagesDataUrls && postData.imagesDataUrls[0]) || (postData.images && postData.images[0]))) || '';
 
     helper.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
